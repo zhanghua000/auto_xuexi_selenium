@@ -1,0 +1,167 @@
+{
+    "data": {
+        "userId": 151062074353,
+        "inBlackList": false,
+        "blackListTip": null,
+        "dayScoreDtos": [
+            {
+                "ruleId": 1,
+                "name": "阅读文章",
+                "desc": "阅读信息流中的文章",
+                "currentScore": 6.0,
+                "dayMaxScore": 6.0
+            },
+            {
+                "ruleId": 2,
+                "name": "视听学习",
+                "desc": "播放信息流中的视频",
+                "currentScore": 6.0,
+                "dayMaxScore": 6.0
+            },
+            {
+                "ruleId": 4,
+                "name": "专项答题",
+                "desc": "完成一张专题考试试卷",
+                "currentScore": 0,
+                "dayMaxScore": 10.0
+            },
+            {
+                "ruleId": 5,
+                "name": "每周答题",
+                "desc": "完成一组新的每周一答练习",
+                "currentScore": 0,
+                "dayMaxScore": 5.0
+            },
+            {
+                "ruleId": 6,
+                "name": "每日答题",
+                "desc": "完成一组新的智能答题练习",
+                "currentScore": 0,
+                "dayMaxScore": 5.0
+            },
+            {
+                "ruleId": 7,
+                "name": "分享",
+                "desc": "在关注、要闻、视频中分享内容",
+                "currentScore": 0,
+                "dayMaxScore": 1.0
+            },
+            {
+                "ruleId": 8,
+                "name": "收藏",
+                "desc": "在关注、要闻、视频中收藏内容",
+                "currentScore": 0,
+                "dayMaxScore": 0.0
+            },
+            {
+                "ruleId": 9,
+                "name": "登录",
+                "desc": "每日首次登录",
+                "currentScore": 1.0,
+                "dayMaxScore": 1.0
+            },
+            {
+                "ruleId": 1002,
+                "name": "文章时长",
+                "desc": "阅读文章学习时长",
+                "currentScore": 6.0,
+                "dayMaxScore": 6.0
+            },
+            {
+                "ruleId": 10,
+                "name": "订阅",
+                "desc": "订阅学习平台",
+                "currentScore": 0,
+                "dayMaxScore": 2.0
+            },
+            {
+                "ruleId": 1003,
+                "name": "视听学习时长",
+                "desc": "观看视频学习时长",
+                "currentScore": 6.0,
+                "dayMaxScore": 6.0
+            },
+            {
+                "ruleId": 11,
+                "name": "发表观点",
+                "desc": "针对文章发表一个观点",
+                "currentScore": 0,
+                "dayMaxScore": 1.0
+            },
+            {
+                "ruleId": 1004,
+                "name": "连续学习达标",
+                "desc": "连续学习达标",
+                "currentScore": 0,
+                "dayMaxScore": 1.0
+            },
+            {
+                "ruleId": 12,
+                "name": "挑战答题",
+                "desc": "挑战答题",
+                "currentScore": 0,
+                "dayMaxScore": 6.0
+            },
+            {
+                "ruleId": 13,
+                "name": "参加调查问卷活动",
+                "desc": "参加调查问卷活动",
+                "currentScore": 0,
+                "dayMaxScore": 1.0
+            },
+            {
+                "ruleId": 14,
+                "name": "本地频道",
+                "desc": "探索本地频道",
+                "currentScore": 0,
+                "dayMaxScore": 1.0
+            },
+            {
+                "ruleId": 15,
+                "name": "强国运动",
+                "desc": "1分/每周每累积5000步",
+                "currentScore": 0,
+                "dayMaxScore": 2.0
+            },
+            {
+                "ruleId": 2001,
+                "name": "积分补发",
+                "desc": "系统补发积分",
+                "currentScore": 0,
+                "dayMaxScore": 10.0
+            },
+            {
+                "ruleId": 10001,
+                "name": "争上游答题",
+                "desc": "首局胜利积3分，第二局胜利积2分，失败均积1分\n每日仅前两局得分",
+                "currentScore": 0,
+                "dayMaxScore": 5.0
+            },
+            {
+                "ruleId": 2002,
+                "name": "【积分优化】一次性调整",
+                "desc": "【积分优化】一次性调整",
+                "currentScore": 0,
+                "dayMaxScore": 10.0
+            },
+            {
+                "ruleId": 2003,
+                "name": "违规扣减",
+                "desc": "用户违规，积分扣减",
+                "currentScore": 0,
+                "dayMaxScore": 1000.0
+            },
+            {
+                "ruleId": 10004,
+                "name": "双人对战",
+                "desc": "首局胜利积2分，失败积1分\n每日仅首局得分",
+                "currentScore": 0,
+                "dayMaxScore": 2.0
+            }
+        ]
+    },
+    "message": "OK",
+    "code": 200,
+    "error": null,
+    "ok": true
+}

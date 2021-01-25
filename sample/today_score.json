@@ -1,0 +1,14 @@
+{
+    "data": {
+        "userId": 151062074353,
+        "scoreTypeId": 0,
+        "scoreTypeName": null,
+        "score": 25.0,
+        "time": 0,
+        "scoreV2": "0"
+    },
+    "message": "OK",
+    "code": 200,
+    "error": null,
+    "ok": true
+}
