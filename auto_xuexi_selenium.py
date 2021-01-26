@@ -491,6 +491,7 @@ class XuexiProcessor:
         self.thread_logger.info("正在处理每日答题")
         self.process_test(url="https://pc.xuexi.cn/points/exam-practice.html")
     def process_weekly_test(self):
+        is_any_undone=True
         self.thread_logger.info("正在处理每周答题列表")
         while True:
             if self.is_test_finished(rule_id=5)==True:
@@ -499,6 +500,9 @@ class XuexiProcessor:
             self.browser_driver.get("https://pc.xuexi.cn/points/exam-weekly-list.html")
             months_container=WebDriverWait(driver=self.browser_driver,timeout=20).until(expected_conditions.presence_of_element_located((By.CLASS_NAME,"ant-spin-container")))
             months=months_container.find_elements_by_class_name("month")
+            if is_any_undone==False:
+                self.thread_logger.info("无可用题目")
+                break
             for month in months:
                 logger.info("正在处理 %s 月的每周答题" %month.find_element_by_class_name("month-title").text)
                 weeks=month.find_element_by_class_name("weeks").find_elements_by_class_name("week")
@@ -517,6 +521,7 @@ class XuexiProcessor:
                         self.process_test(url=test_url,current_page=True)
                         self.thread_logger.debug("正在终止循环以获取新的周信息")
                         break
+                is_any_undone=False
                 self.thread_logger.debug("正在终止循环以获取新的月信息")
                 break
             # next_button=WebDriverWait(driver=self.browser_driver,timeout=20).until(expected_conditions.presence_of_element_located((By.CLASS_NAME,"ant-pagination-next")))
