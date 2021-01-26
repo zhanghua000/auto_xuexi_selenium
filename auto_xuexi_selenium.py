@@ -752,7 +752,7 @@ class XuexiProcessor:
         try:
             times=datas.fetchall()[0]
             conn.close()
-            if int(time.time()-float(times))>=days*24*3600:
+            if int(time.time()-float(times[0]))>=days*24*3600:
                 return False
             else:
                 return True

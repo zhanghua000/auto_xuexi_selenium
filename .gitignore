@@ -2,3 +2,5 @@ config.json
 *.db
 *.exe
 *.log
+qr.png
+video.mp4
