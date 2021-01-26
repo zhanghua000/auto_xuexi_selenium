@@ -1,5 +1,9 @@
 # auto_xuexi_selenium
 
+## LICENCE
+
+![LICENCE.WTFPL](https://img.shields.io/github/license/zhanghua000/auto_xuexi_selenium?logoColor=9cf&style=flat-square "WTFPL LICENCE")  
+
 ## 这是嘛玩意
 
 使用selenium自动学习一些人生的经验  
@@ -32,7 +36,3 @@
 - "qr_login":二维码登陆  
 - "record_days":记录在数据库中的已读列表保存时间  
 - "timeout":判断为“学习后无法加分”状态的超时。这个状态大概率是由于以前读过却没有被记录  
-
-## LICENCE
-
-![LICENCE.WTFPL]("https://www.wtfpl.net/wp-content/uploads/2012/12/logo-220x1601.png")
