@@ -13,6 +13,7 @@ import pprint
 import random
 import win32api
 from PIL import Image
+from fuzzywuzzy import fuzz
 from Crypto.Cipher import AES
 from pyzbar.pyzbar import decode
 from requests.sessions import Session
@@ -411,7 +412,7 @@ class XuexiProcessor:
                 title_element=WebDriverWait(driver=self.browser_driver,timeout=10).until(expected_conditions.visibility_of_element_located((By.CLASS_NAME,"render-detail-title")))
                 self.thread_logger.debug("实际标题：%s" %title_element.text.replace("\n",""))
                 self.thread_logger.debug("目标标题：%s" %each_news.title)
-                if each_news.title.replace("\n","") in title_element.text.replace("\n",""):
+                if self.is_partial_match(string1=each_news.title,string2=title_element.text):
                     while True:
                         height=self.browser_driver.execute_script(script="return action=document.body.scrollHeight")
                         self.browser_driver.execute_script(script="window.scrollTo(0,%d)" %self.gen_scroll_to_pos(height=height,current_pos=int(self.browser_driver.execute_script(script="return window.pageYOffset"))))
@@ -433,22 +434,32 @@ class XuexiProcessor:
             videos=self.get_videos()
             for video in videos:
                 logger.info("正在处理视频 %s" %video.title)
-                video_start_time=time.time()
-                orig_score=self.get_today_score()
-                self.browser_driver.execute_script(script="window.open('%s')" %video.url)
-                self.browser_driver.switch_to.window(self.browser_driver.window_handles[1])
+                if self.is_item_read(url=video.url,days=self.record_days)==True:
+                    self.thread_logger.info("视频 %s 在 %d 天内阅读过，正在跳过" %(video.title,self.record_days))
+                    continue
                 if self.is_videos_watched()==True:
                     self.browser_driver.close()
                     self.browser_driver.switch_to.window(self.browser_driver.window_handles[0])
                     self.thread_logger.info("视频得分已达到目标，无需处理")
                     break
-                if self.is_item_read(url=video.url,days=self.record_days)==True:
-                    self.thread_logger.info("视频 %s 在 %d 天内阅读过，正在跳过" %(video.title,self.record_days))
-                    continue
+                video_start_time=time.time()
+                orig_score=self.get_today_score()
+                self.browser_driver.execute_script(script="window.open('%s')" %video.url)
+                self.browser_driver.switch_to.window(self.browser_driver.window_handles[1])
                 try:
-                    status=WebDriverWait(driver=self.browser_driver,timeout=10).until(expected_conditions.title_is(title=video.title+" | 学习强国"))==True
+                    status=WebDriverWait(driver=self.browser_driver,timeout=10).until(expected_conditions.title_is(title=video.title.replace("\n","").replace(" ","")+" | 学习强国"))==True
                 except TimeoutException:
-                    status=video.title.replace("\n","") in WebDriverWait(driver=self.browser_driver,timeout=10).until(expected_conditions.visibility_of_element_located((By.CLASS_NAME,"video-article-title"))).text.replace("\n","")
+                    try:
+                        title_element=WebDriverWait(driver=self.browser_driver,timeout=10).until(expected_conditions.visibility_of_element_located((By.CLASS_NAME,"video-article-title")))
+                    except TimeoutException:
+                        self.thread_logger.error("网页加载失败")
+                        status=False
+                        raise RuntimeError("网页加载失败")
+                    else:
+                        status=self.is_partial_match(string1=video.title,string2=title_element.text)
+                        self.thread_logger.debug("目标标题：%s" %video.title)
+                        self.thread_logger.debug("实际标题：%s" %title_element.text)
+                        self.thread_logger.debug("近似匹配结果：%s" %status)
                 finally:
                     if status==True:
                         video_element=self.browser_driver.find_element_by_class_name("prism-player").find_element_by_tag_name("video")
@@ -758,6 +769,21 @@ class XuexiProcessor:
                 return True
         except IndexError:
             return False
+    def is_partial_match(self,string1:str,string2:str,target_score:int = 50) -> bool:
+        process_strings=list()
+        for string in [string1,string2]:
+            if "\n" in string:
+                oldstring=string
+                string=string.replace("\n"," ")
+                self.thread_logger.debug("字符串 %s 去换行符结果：%s" %(oldstring,string))
+            process_strings.append(string)
+        self.thread_logger.debug("参与匹配数据：%s" %process_strings)
+        similarity=fuzz.partial_ratio(process_strings[0],process_strings[1])
+        self.thread_logger.debug("字符串相似度：%d" %similarity)
+        if similarity>=target_score:
+            return True
+        return False
+
 def get_edge_version():
     for dir in os.listdir("C:\\Program Files (x86)\\Microsoft\\Edge\\Application"):
         re_res=re.search(r"^\d*.\d*.\d*.\d*$",dir)
