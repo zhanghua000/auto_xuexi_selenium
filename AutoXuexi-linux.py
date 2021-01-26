@@ -21,7 +21,7 @@ def load_config(conf_name:str = "config.json"):
         "enable_weekly_test":True,
         "enable_special_test":True,
         "qr_login":True,
-        "is_debug":True,
+        "is_debug":False,
         "edge_version":"88.0.705.50",
         "timeout":600,
         "record_days":3,
