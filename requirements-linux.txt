@@ -1,0 +1,8 @@
+requests
+tqdm
+pyzbar
+qrcode
+selenium
+Pillow
+pycryptodome
+fuzzywuzzy[speedup]

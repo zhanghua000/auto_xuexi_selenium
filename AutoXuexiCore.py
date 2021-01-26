@@ -1,5 +1,6 @@
 import re
 import os
+import sys
 import requests
 import logging
 import base64
@@ -15,9 +16,9 @@ from pyzbar.pyzbar import decode
 from requests.sessions import Session
 from selenium.webdriver import Chrome
 from selenium.webdriver import Firefox
+from selenium.webdriver.common.by import By
 from selenium.webdriver import ChromeOptions
 from selenium.webdriver import FirefoxOptions
-from selenium.webdriver.common.by import By
 from msedge.selenium_tools import Edge, EdgeOptions
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions
@@ -101,7 +102,7 @@ class XuexiProcessor:
         formatter=logging.Formatter(fmt="%(asctime)s-%(levelname)s-%(message)s",datefmt="%Y-%m-%d %H:%M:%S")
         file_handler=logging.FileHandler(filename="thread.log",mode="w",encoding="utf-8")
         file_handler.setFormatter(formatter)
-        stream_handler=logging.StreamHandler()
+        stream_handler=logging.StreamHandler(stream=sys.stdout)
         stream_handler.setFormatter(formatter)
         self.thread_logger.addHandler(file_handler)
         self.thread_logger.addHandler(stream_handler)
@@ -137,7 +138,7 @@ class XuexiProcessor:
             conn.commit()
             conn.close()
             self.thread_logger.info("数据库清理完成")
-        if browser_type=="edge_chromium":
+        if "edge" in browser_type:
             edge_options=EdgeOptions()
             if browser_exec!="":
                 edge_options.binary_location=browser_exec
@@ -145,7 +146,8 @@ class XuexiProcessor:
                 driver_exec="msedgedriver"
             if is_debug==False:
                 edge_options.add_argument("headless")
-            edge_options.use_chromium = True
+            if browser_type=="edge_chromium":
+                edge_options.use_chromium = True
             self.browser_driver=Edge(executable_path=driver_exec,options=edge_options)
         elif browser_type=="chrome":
             chrome_options=ChromeOptions()
@@ -163,6 +165,9 @@ class XuexiProcessor:
             if is_debug==False:
                 firefox_options.add_argument("-headless")
             self.browser_driver=Firefox(firefox_binary=browser_exec,executable_path=driver_exec,options=firefox_options)
+        else:
+            self.thread_logger.error("设置中使用了不支持的浏览器")
+            raise RuntimeError("设置中使用了不支持的浏览器")
         self.browser_driver.maximize_window()
         self.request_session=requests.session()
         self.update_requests_cookies_with_selenium()
@@ -201,6 +206,7 @@ class XuexiProcessor:
         self.get_qr_code()
         self.qr_login=True
     def close_driver(self):
+        self.thread_logger.info("正在关闭浏览器驱动")
         if os.path.exists("qr.png")==True:
             os.remove("qr.png")
         if os.path.exists("video.mp4")==True:
