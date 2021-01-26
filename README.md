@@ -22,7 +22,7 @@
 
 - "allow_upload":是否允许上传数据库，默认打开  
 - "browser_exec":浏览器执行文件位置，默认为""，使用系统默认位置  
-- "browser_type":浏览器类型，可取范围：edge_legacy,edge_chromium,chrome,firefox，除Edge以外，其余浏览器请自行配置驱动和浏览器执行文件，Chrome和Chromium使用同一个配置，但Chromium需要手动指定浏览器执行文件为Chromium的可执行文件  
+- "browser_type":浏览器类型，可取范围：edge_legacy,edge_chromium,chrome,firefox，除Edge Chromium以外，其余浏览器请自行配置驱动和浏览器执行文件，Chrome和Chromium使用同一个配置，但Chromium需要手动指定浏览器执行文件为Chromium的可执行文件  
 - "driver_exec":驱动执行文件位置，Edge为msedgedriver，其余浏览器自行配置
 - "edge_version":Edge Chromium浏览器的版本号，不使用Edge Chromium则可以忽略  
 - "enable_daily_test":启用每日测验  
