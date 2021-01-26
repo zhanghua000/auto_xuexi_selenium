@@ -1,132 +1,30 @@
 import re
 import os
-import tqdm
 import requests
-import zipfile
 import logging
-import json
 import base64
 import sqlite3
 import qrcode
 import time
 import pprint
 import random
-import win32api
 from PIL import Image
 from fuzzywuzzy import fuzz
 from Crypto.Cipher import AES
 from pyzbar.pyzbar import decode
 from requests.sessions import Session
+from selenium.webdriver import Chrome
+from selenium.webdriver import Firefox
+from selenium.webdriver import ChromeOptions
+from selenium.webdriver import FirefoxOptions
 from selenium.webdriver.common.by import By
 from msedge.selenium_tools import Edge, EdgeOptions
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions
 from selenium.common.exceptions import NoSuchElementException, TimeoutException
 os.chdir(os.path.split(os.path.realpath(__file__))[0])
-default_conf={
-    "enable_daily_test":True,
-    "enable_weekly_test":True,
-    "enable_special_test":True,
-    "qr_login":True,
-    "is_debug":True,
-    "edge_version":"88.0.705.50",
-    "timeout":600,
-    "record_days":3}
-enable_daily_test=bool(default_conf["enable_daily_test"])
-enable_weekly_test=bool(default_conf["enable_weekly_test"])
-enable_special_test=bool(default_conf["enable_special_test"])
-qr_login=bool(default_conf["qr_login"])
-is_debug=bool(default_conf["is_debug"])
-edge_version=str(default_conf["edge_version"])
-timeout=int(default_conf["timeout"])
-record_days=int(default_conf["record_days"])
-if os.path.exists("config.json")==True:
-    with open(file="config.json",mode="r",encoding="utf-8") as conf_reader:
-        conf=json.loads(conf_reader.read())
-    try:
-        enable_daily_test=bool(conf["enable_daily_test"])
-        enable_special_test=bool(conf["enable_special_test"])
-        enable_weekly_test=bool(conf["enable_weekly_test"])
-        qr_login=bool(conf["qr_login"])
-        is_debug=bool(conf["is_debug"])
-        edge_version=str(conf["edge_version"])
-        timeout=int(conf["timeout"])
-        record_days=int(conf["record_days"])
-    except KeyError:
-        with open(file="config.json",mode="w",encoding="utf-8") as conf_creater:
-            conf_creater.write(json.dumps(obj=default_conf,sort_keys=True,indent=4))
-        enable_daily_test=bool(default_conf["enable_daily_test"])
-        enable_special_test=bool(default_conf["enable_special_test"])
-        enable_weekly_test=bool(default_conf["enable_weekly_test"])
-        qr_login=bool(default_conf["qr_login"])
-        is_debug=bool(default_conf["is_debug"])
-        edge_version=str(default_conf["edge_version"])
-        timeout=int(default_conf["timeout"])
-        record_days=int(default_conf["record_days"])
-else:
-    with open(file="config.json",mode="w",encoding="utf-8") as conf_creater:
-        conf_creater.write(json.dumps(obj=default_conf,sort_keys=True,indent=4))
-    conf=default_conf
-formatter=logging.Formatter(fmt="%(asctime)s-%(levelname)s-%(message)s",datefmt="%Y-%m-%d %H:%M:%S")
-logger=logging.getLogger("main")
-if is_debug==True:
-    logger.setLevel(logging.DEBUG)
-else:
-    logger.setLevel(logging.INFO)
-file_handler=logging.FileHandler(filename="main.log",mode="w",encoding="utf-8")
-file_handler.setFormatter(formatter)
-stream_handler=logging.StreamHandler()
-stream_handler.setFormatter(formatter)
-logger.addHandler(file_handler)
-logger.addHandler(stream_handler)
-def get_answer(question:str,type_of_question:str):
-    conn=sqlite3.connect("database.db")
-    cur=conn.cursor()
-    data=cur.execute("SELECT answer FROM answers WHERE question = '%s' AND type = '%s'" %(question,type_of_question))
-    datas=data.fetchall()
-    conn.close()
-    return datas
-def update_database(question:str,answer:str,type_of_question:str):
-    conn=sqlite3.connect("database.db")
-    cur=conn.cursor()
-    cur.execute("INSERT INTO answers (type,question,answer) VALUES (%s,%s,%s)" %(type_of_question,question,answer))
-    conn.commit()
-    conn.close()
-def upload_database():
-    # TODO Find or create an API
-    pass
-
-
-def get_edge_driver(version="87.0.664.52"):
-    if os.path.exists("edge_driver.zip")==False:
-        logger.debug("正在从网络获取文件")
-        down_url="https://msedgedriver.azureedge.net/"+version+"/edgedriver_win64.zip"
-        with open(file="edge_driver.zip",mode="wb") as zip_writer:
-            try:
-                down_re=requests.get(down_url,stream=True)
-            except requests.exceptions.ConnectionError:
-                logger.error("下载失败，你可以手动打开 %s 来下载文件并以 edge_driver.zip 的名字保存至程序文件夹下，重启程序后将自动获取压缩文件内的驱动程序" %down_url)
-            else:
-                size=float(down_re.headers["Content-Length"])/1024 #KB
-                for data in tqdm.tqdm(down_re.iter_content(1024),total=size,unit="KiB",desc="下载进度",unit_scale=True):
-                    zip_writer.write(data)
-    else:
-        logger.info("找到已下载的文件，正在尝试解压缩")
-    with zipfile.ZipFile(file="edge_driver.zip",mode="r") as zip_reader:
-        zip_reader.extract("msedgedriver.exe")
-    os.remove("edge_driver.zip")
-    logger.info("正在验证文件版本")
-    info=win32api.GetFileVersionInfo("msedgedriver.exe",os.sep)
-    ms=info["FileVersionMS"]
-    ls=info["FileVersionLS"]
-    version_current = '%d.%d.%d.%d' % (win32api.HIWORD(ms), win32api.LOWORD(ms), win32api.HIWORD(ls),win32api.LOWORD(ls))
-    if version_current !=version:
-        logger.error("驱动版本不符合要求，正在重新下载")
-        get_edge_driver(version=version)
-    else:
-        logger.info("驱动版本符合要求")
 class XuexiItem:
-    def __init__(self,data_dic:dict):
+    def __init__(self,data_dic:dict,is_debug:bool):
         try:
             try:
                 self.editors=list(data_dic["editor"])
@@ -147,7 +45,7 @@ class XuexiItem:
                 pprint.pprint(data_dic)
             raise ValueError("无法创建XuexiItem对象，传入字典格式有误")
 class XuexiQueryState:
-    def __init__(self,data_dic:dict):
+    def __init__(self,data_dic:dict,is_debug:bool):
         try:
             data=data_dic["data"]
             self.user_id=data["userId"]
@@ -156,13 +54,13 @@ class XuexiQueryState:
             score_details=data["dayScoreDtos"]
             self.states=list()
             for score_detail in score_details:
-                self.states.append(XuexiStateDetail(data_dic=score_detail))
+                self.states.append(XuexiStateDetail(data_dic=score_detail,is_debug=is_debug))
         except KeyError:
             if is_debug==True:
                 pprint.pprint(data_dic)
             raise ValueError("无法创建XuexiQueryState对象，传入字典格式有误")
 class XuexiStateDetail:
-    def __init__(self,data_dic:dict):
+    def __init__(self,data_dic:dict,is_debug:bool):
         try:
             self.rule_id=data_dic["ruleId"]
             self.name=data_dic["name"]
@@ -189,25 +87,35 @@ class XuexiStateDetail:
                 else:
                     self.is_finished=False
 class XuexiProcessor:
-    def __init__(self,is_debug=True,edge_version="87.0.664.52",current_edge_version="87.0.664.52",timeout=600,record_days=3):
-        self.thread_logger=logging.getLogger("main")
+    def __init__(self,is_debug=True,timeout=600,record_days=3,
+                 browser_type:str = "edge_chromium",qr_login:bool = True,
+                 enable_special_test:bool = True,enable_weekly_test:bool = True,
+                 enable_daily_test:bool = True,browser_exec:str = None,
+                 driver_exec:str = None):
+        self.is_debug=is_debug
+        self.thread_logger=logging.getLogger("thread")
+        if is_debug==True:
+            self.thread_logger.setLevel(logging.DEBUG)
+        else:
+            self.thread_logger.setLevel(logging.INFO)
+        formatter=logging.Formatter(fmt="%(asctime)s-%(levelname)s-%(message)s",datefmt="%Y-%m-%d %H:%M:%S")
+        file_handler=logging.FileHandler(filename="thread.log",mode="w",encoding="utf-8")
+        file_handler.setFormatter(formatter)
+        stream_handler=logging.StreamHandler()
+        stream_handler.setFormatter(formatter)
+        self.thread_logger.addHandler(file_handler)
+        self.thread_logger.addHandler(stream_handler)
         self.is_answer_in_db_updated=False
         self.timeout=timeout
         self.record_days=record_days
-        if is_debug==True:
+        self.qr_login=qr_login
+        self.enable_special_test=enable_special_test
+        self.enable_weekly_test=enable_weekly_test
+        self.enable_daily_test=enable_daily_test
+        if self.is_debug==True:
             self.thread_logger.debug("当前处于调试模式")
         else:
             self.thread_logger.debug("当前处于正常模式")
-        if os.path.exists("msedgedriver.exe")==False:
-            self.thread_logger.info("未发现Edge浏览器驱动，正在下载浏览器驱动")
-            self.thread_logger.debug("正在下载版本为 %s 的驱动" %edge_version)
-            get_edge_driver(version=edge_version)
-            self.thread_logger.info("Edge浏览器驱动下载完成")
-        elif edge_version!=current_edge_version:
-            self.thread_logger.info("正在更新Edge浏览器驱动")
-            self.thread_logger.debug("正在下载版本为 %s 的驱动" %edge_version)
-            get_edge_driver(version=edge_version)
-            self.thread_logger.info("Edge浏览器驱动下载完成")
         if os.path.exists("database.db")==False:
             self.thread_logger.info("正在创建数据库")
             conn=sqlite3.connect("database.db")
@@ -229,57 +137,42 @@ class XuexiProcessor:
             conn.commit()
             conn.close()
             self.thread_logger.info("数据库清理完成")
-        edge_options=EdgeOptions()
-        if is_debug==False:
-            edge_options.add_argument("headless")
-        edge_options.use_chromium = True
-        self.browser_driver=Edge(executable_path="msedgedriver.exe",options=edge_options)
+        if browser_type=="edge_chromium":
+            edge_options=EdgeOptions()
+            if browser_exec!="":
+                edge_options.binary_location=browser_exec
+            if driver_exec=="":
+                driver_exec="msedgedriver"
+            if is_debug==False:
+                edge_options.add_argument("headless")
+            edge_options.use_chromium = True
+            self.browser_driver=Edge(executable_path=driver_exec,options=edge_options)
+        elif browser_type=="chrome":
+            chrome_options=ChromeOptions()
+            if browser_exec!="":
+                chrome_options.binary_location=browser_exec
+            if driver_exec=="":
+                driver_exec="chromedriver"
+            if is_debug==False:
+                chrome_options.add_argument("headless")
+            self.browser_driver=Chrome(executable_path=driver_exec,options=chrome_options)
+        elif browser_type=="firefox":
+            firefox_options=FirefoxOptions()
+            if driver_exec=="":
+                driver_exec="geckodriver"
+            if is_debug==False:
+                firefox_options.add_argument("-headless")
+            self.browser_driver=Firefox(firefox_binary=browser_exec,executable_path=driver_exec,options=firefox_options)
         self.browser_driver.maximize_window()
         self.request_session=requests.session()
         self.update_requests_cookies_with_selenium()
-        if qr_login==True:
+        if self.qr_login==True:
             self.get_qr_code()
         else:
             self.user_name_handler()
         self.get_query_state()
         self.thread_logger.info("当前用户ID：%d" %self.query_states.user_id)
-        for state in self.query_states.states:
-            logger.info("正在处理 %s 的内容" %state.name)
-            if state.is_finished==True:
-                logger.info("%s 已完成，正在跳过处理" %state.name)
-            else:
-                """              
-                 1:阅读文章            2:视听学习              4:专项答题
-                 5:每周答题            6:每日答题              7:分享
-                 8:收藏                9:登录               1002:文章时长
-                 10:订阅            1003:视听学习时长         11:发表观点
-                 1004:连续学习达标    12:挑战答题             13:参加调查问卷活动
-                 14:本地频道          15:强国运动           2001:系统补发
-                 10001:争上游答题   2002:积分优化           2003:违规扣减
-                 10004:双人对战
-                """
-                if state.rule_id==1 or state.rule_id==1002:
-                    self.process_news()
-                elif state.rule_id==2 or state.rule_id==1003:
-                    self.process_videos()
-                elif state.rule_id==4:
-                    if enable_special_test==True:
-                        self.process_special_test()
-                elif state.rule_id==5:
-                    if enable_weekly_test==True:
-                        self.process_weekly_test()
-                elif state.rule_id==6:
-                    if enable_daily_test==True:
-                        self.process_daily_test()
-                elif state.rule_id in [7,8,9,10,11,1004,13,14,15,2001,2002,2003]:
-                    logger.info("%s 无需处理" %state.name)
-                else:
-                    logger.error("暂不支持 %s 的处理" %state.name)
-            self.update_requests_cookies_with_selenium()
-            state.update_self_finish_status(session=self.request_session)
         self.thread_logger.debug("已初始化类")
-        self.close_driver()
-        self.thread_logger.info("已结束处理全部任务")
     def get_qr_code(self):
         self.browser_driver.get("https://pc.xuexi.cn/points/login.html?ref=https%3A%2F%2Fwww.xuexi.cn%2F")
         qglogin=WebDriverWait(driver=self.browser_driver,timeout=30).until(expected_conditions.visibility_of_element_located((By.ID,"qglogin")))
@@ -306,7 +199,7 @@ class XuexiProcessor:
     def user_name_handler(self):
         self.thread_logger.error("现已不支持用户名登陆，正在切换至二维码登陆")
         self.get_qr_code()
-        qr_login=True
+        self.qr_login=True
     def close_driver(self):
         if os.path.exists("qr.png")==True:
             os.remove("qr.png")
@@ -334,7 +227,7 @@ class XuexiProcessor:
         self.update_requests_cookies_with_selenium()
         state=self.request_session.get("https://pc-api.xuexi.cn/open/api/score/today/queryrate")
         state_dtos=state.json()["data"]["dayScoreDtos"]
-        self.query_states=XuexiQueryState(data_dic=state.json())
+        self.query_states=XuexiQueryState(data_dic=state.json(),is_debug=self.is_debug)
         data=dict()
         for state_dto in state_dtos:
             data[str(state_dto["name"])]=str(state_dto["currentScore"])+"/"+str(state_dto["dayMaxScore"])
@@ -346,13 +239,13 @@ class XuexiProcessor:
             self.query_state=self.get_query_state()
         except:
             self.thread_logger.error("获取分数数据出错")
-            if is_debug==True:
+            if self.is_debug==True:
                 pprint.pprint(self.query_state)
         else:
             detail=""
             for name in self.query_state:
                 detail=detail+name+":"+self.query_state[name]+"分\n"
-            logger.info("总分：%d 分\t今日已获得分数：%d分" %(self.total_score,self.today_score))
+            self.thread_logger.info("总分：%d 分\t今日已获得分数：%d分" %(self.total_score,self.today_score))
             string=detail.replace("\n","\t")
             self.thread_logger.debug("详细信息：%s" %string.replace(string[-1],""))
     def get_items(self,url:str):
@@ -360,7 +253,7 @@ class XuexiProcessor:
         items_list=self.request_session.get(url).json()
         results=list()
         for item in items_list:
-            results.append(XuexiItem(data_dic=item))
+            results.append(XuexiItem(data_dic=item,is_debug=self.is_debug))
         return results
     def get_news(self):
         return self.get_items(url="https://www.xuexi.cn/lgdata/1crqb964p71.json")
@@ -403,7 +296,7 @@ class XuexiProcessor:
                 if self.is_item_read(url=each_news.url,days=self.record_days)==True:
                     self.thread_logger.info("文章 %s 在 %d 天阅读过，正在跳过" %(each_news.title,self.record_days))
                     continue
-                logger.info("正在处理文章 %s" %each_news.title)
+                self.thread_logger.info("正在处理文章 %s" %each_news.title)
                 news_start_time=time.time()
                 orig_score=self.get_today_score()
                 self.browser_driver.execute_script(script="window.open('%s')" %each_news.url)
@@ -420,7 +313,7 @@ class XuexiProcessor:
                             self.browser_driver.close()
                             self.browser_driver.switch_to.window(self.browser_driver.window_handles[0])
                             self.thread_logger.debug("已结束刷文章 %s" %each_news.title)
-                            self.update_database(url=each_news.url,read_time=time.time())
+                            self.update_read_database(url=each_news.url,read_time=time.time())
                             break                      
                         time.sleep(random.uniform(3.0,7.0))
                 else:
@@ -433,7 +326,7 @@ class XuexiProcessor:
                 break
             videos=self.get_videos()
             for video in videos:
-                logger.info("正在处理视频 %s" %video.title)
+                self.thread_logger.info("正在处理视频 %s" %video.title)
                 if self.is_item_read(url=video.url,days=self.record_days)==True:
                     self.thread_logger.info("视频 %s 在 %d 天内阅读过，正在跳过" %(video.title,self.record_days))
                     continue
@@ -481,7 +374,7 @@ class XuexiProcessor:
                                 self.browser_driver.close()
                                 self.browser_driver.switch_to.window(self.browser_driver.window_handles[0])
                                 self.thread_logger.debug("已完成视频 %s 的播放" %video.title)
-                                self.update_database(url=video.url,read_time=time.time())
+                                self.update_read_database(url=video.url,read_time=time.time())
                                 break
                             time.sleep(random.uniform(3.0,7.0))
                     else:
@@ -495,7 +388,7 @@ class XuexiProcessor:
         self.thread_logger.info("正在处理每周答题列表")
         while True:
             if self.is_test_finished(rule_id=5)==True:
-                logger.info("今日的周测试已完成")
+                self.thread_logger.info("今日的周测试已完成")
                 break
             self.browser_driver.get("https://pc.xuexi.cn/points/exam-weekly-list.html")
             months_container=WebDriverWait(driver=self.browser_driver,timeout=20).until(expected_conditions.presence_of_element_located((By.CLASS_NAME,"ant-spin-container")))
@@ -504,13 +397,13 @@ class XuexiProcessor:
                 self.thread_logger.info("无可用题目")
                 break
             for month in months:
-                logger.info("正在处理 %s 月的每周答题" %month.find_element_by_class_name("month-title").text)
+                self.thread_logger.info("正在处理 %s 月的每周答题" %month.find_element_by_class_name("month-title").text)
                 weeks=month.find_element_by_class_name("weeks").find_elements_by_class_name("week")
                 for week in weeks:
                     week_title=week.find_element_by_class_name("week-title").text
-                    logger.info("正在处理 %s 周的答题" %week_title)
+                    self.thread_logger.info("正在处理 %s 周的答题" %week_title)
                     if "done" in week.find_element_by_class_name("stat").find_element_by_tag_name("div").get_attribute("class"):
-                        logger.info("%s 周的答题已完成，跳过处理" %week_title)
+                        self.thread_logger.info("%s 周的答题已完成，跳过处理" %week_title)
                         continue
                     elif "button-disabled" in week.find_element_by_tag_name("button").get_attribute("class"):
                         self.thread_logger.info("%s 周的题目已过期，正在跳过" %week_title)
@@ -524,11 +417,6 @@ class XuexiProcessor:
                 is_any_undone=False
                 self.thread_logger.debug("正在终止循环以获取新的月信息")
                 break
-            # next_button=WebDriverWait(driver=self.browser_driver,timeout=20).until(expected_conditions.presence_of_element_located((By.CLASS_NAME,"ant-pagination-next")))
-            # if next_button.get_attribute("aria-disabled")=="true":
-            #     break
-            # else:
-            #     next_button.click()
     def process_special_test(self):
         self.thread_logger.info("正在处理专项答题列表")
         while True:
@@ -613,13 +501,13 @@ class XuexiProcessor:
                         self.thread_logger.error("问题 %s 在网页上未提供答案" %question_title)
                         input_element.clear()
                         self.thread_logger.info("正在从数据库中搜索答案")
-                        answers_in_db=get_answer(question=question_title,type_of_question="fill_the_blank")
+                        answers_in_db=self.get_answer(question=question_title,type_of_question="fill_the_blank")
                         if len(answers_in_db)==1 and len(answers_in_db[0])==1:
                             answer_in_db=answers_in_db[0][0]
-                            logger.debug("找到问题 %s 的答案 %s" %(question_title,str(answer_in_db)))
+                            self.thread_logger.debug("找到问题 %s 的答案 %s" %(question_title,str(answer_in_db)))
                             input_element.send_keys(str(answer_in_db))
                         elif len(answers_in_db)==0:
-                            logger.error("在数据库中搜索答案失败")
+                            self.thread_logger.error("在数据库中搜索答案失败")
                             video=WebDriverWait(driver=self.browser_driver,timeout=5).until(expected_conditions.visibility_of_element_located((By.ID,"video")))
                             self.update_requests_cookies_with_selenium()
                             video_url=video.get_attribute("src")
@@ -631,10 +519,10 @@ class XuexiProcessor:
                             answer_overwrite=input("视频已用 video.mp4 的文件名下载到程序文件夹，答案需要手动输入：")
                             input_element.send_keys(answer_overwrite)
                             self.thread_logger.info("正在更新答案数据库")
-                            update_database(type_of_question="fill_the_blank",question=question_title,answer=answer_overwrite)
+                            self.update_answer_database(type_of_question="fill_the_blank",question=question_title,answer=answer_overwrite)
                             self.is_answer_in_db_updated=True
                         else:
-                            logger.error("数据库中有重复项目，无法寻找到有效答案")
+                            self.thread_logger.error("数据库中有重复项目，无法寻找到有效答案")
                             self.thread_logger.debug("找到的答案 %s" %answers_in_db)
                             answer_overwrite=input("答案需要手动输入：")
                             input_element.send_keys(answer_overwrite)
@@ -655,10 +543,10 @@ class XuexiProcessor:
                             question_title=question_title+span.text+"_"
                         else:
                             question_title=question_title+span.text
-                    logger.error("问题 %s 在网页上未找到答案")
-                    answers_in_db=get_answer(question=question_title,type_of_question="choose")
+                    self.thread_logger.error("问题 %s 在网页上未找到答案")
+                    answers_in_db=self.get_answer(question=question_title,type_of_question="choose")
                     if len(answers_in_db)==0:
-                        logger.error("数据库中无答案，需要手动查询输入")
+                        self.thread_logger.error("数据库中无答案，需要手动查询输入")
                         video=WebDriverWait(driver=self.browser_driver,timeout=5).until(expected_conditions.visibility_of_element_located((By.ID,"video")))
                         self.update_requests_cookies_with_selenium()
                         video_url=video.get_attributes("src")
@@ -670,14 +558,14 @@ class XuexiProcessor:
                         answer_overwrite=input("视频已用 video.mp4 的文件名下载到程序文件夹，答案需要手动输入，多选答案请用#分割：")
                         answers_=answer_overwrite.split("#")
                         self.thread_logger.info("正在更新答案数据库")
-                        update_database(type_of_question="choose",question=question_title,answer=answer_overwrite)
+                        self.update_answer_database(type_of_question="choose",question=question_title,answer=answer_overwrite)
                         self.is_answer_in_db_updated=True
                     elif len(answers_in_db)==1:
-                        logger.info("数据库中已找到答案")
+                        self.thread_logger.info("数据库中已找到答案")
                         answer_in_db=answers_in_db[0]
                         answers_=str(answer_in_db).split("#")
                     else:
-                        logger.error("数据库中有重复项目，无法寻找到有效答案")
+                        self.thread_logger.error("数据库中有重复项目，无法寻找到有效答案")
                         answer_overwrite=input("答案需要手动输入，多选答案请用#分割：")
                         answers_=answer_overwrite.split("#")
                 for answer in answers_:
@@ -753,7 +641,7 @@ class XuexiProcessor:
                     content=self.request_session.get("https://boot-video.xuexi.cn/video/%s/p/%s/%s" %(string0,string1,ts)).content
                 video_part_downloader.write(content)
         self.request_session.headers.update({"Referer":header_bak})
-    def update_database(self,url:str,read_time:float):
+    def update_read_database(self,url:str,read_time:float):
         self.thread_logger.debug("正在更新已读数据库")
         conn=sqlite3.connect("database.db")
         cur=conn.cursor()
@@ -788,34 +676,54 @@ class XuexiProcessor:
         if similarity>=target_score:
             return True
         return False
-
-def get_edge_version():
-    for dir in os.listdir("C:\\Program Files (x86)\\Microsoft\\Edge\\Application"):
-        re_res=re.search(r"^\d*.\d*.\d*.\d*$",dir)
-        if re_res!=None:
-            return re_res.group()
-if __name__=="__main__":
-    logger.info("正在开始处理项目")
-    start_time=time.time()
-    processor=XuexiProcessor(is_debug=is_debug,edge_version=get_edge_version(),current_edge_version=edge_version,timeout=timeout,record_days=record_days)
-    logger.info("已处理完成全部项目")
-    mins,secs=divmod(int(time.time()-start_time),60)
-    hours,mins=divmod(mins,60)
-    logger.info("执行完成，共计用时 {:0>2d}:{:0>2d}:{:0>2d}".format(hours,mins,secs))
-    current_conf={
-        "enable_daily_test":enable_daily_test,
-        "enable_special_test":enable_special_test,
-        "enable_weekly_test":enable_weekly_test,
-        "is_debug":is_debug,
-        "qr_login":qr_login,
-        "edge_version":edge_version,
-        "timeout":timeout,
-        "record_days":record_days}
-    if current_conf!=conf:
-        logger.debug("当前配置已更改，正在更新配置到文件")
-        with open(file="config.json",mode="w",encoding="utf-8") as conf_updater:
-            conf_updater.write(json.dumps(obj=current_conf,indent=4,sort_keys=True))
-    if processor.is_answer_in_db_updated==True:
-        logger.info("正在更新答案数据库到网络")
-        upload_database()
-    
+    def get_answer(self,question:str,type_of_question:str):
+        conn=sqlite3.connect("database.db")
+        cur=conn.cursor()
+        data=cur.execute("SELECT answer FROM answers WHERE question = '%s' AND type = '%s'" %(question,type_of_question))
+        datas=data.fetchall()
+        conn.close()
+        return datas
+    def update_answer_database(self,question:str,answer:str,type_of_question:str):
+        conn=sqlite3.connect("database.db")
+        cur=conn.cursor()
+        cur.execute("INSERT INTO answers (type,question,answer) VALUES (%s,%s,%s)" %(type_of_question,question,answer))
+        conn.commit()
+        conn.close()
+    def start_process(self):
+        for state in self.query_states.states:
+            self.thread_logger.info("正在处理 %s 的内容" %state.name)
+            if state.is_finished==True:
+                self.thread_logger.info("%s 已完成，正在跳过处理" %state.name)
+            else:
+                """              
+                 1:阅读文章            2:视听学习              4:专项答题
+                 5:每周答题            6:每日答题              7:分享
+                 8:收藏                9:登录               1002:文章时长
+                 10:订阅            1003:视听学习时长         11:发表观点
+                 1004:连续学习达标    12:挑战答题             13:参加调查问卷活动
+                 14:本地频道          15:强国运动           2001:系统补发
+                 10001:争上游答题   2002:积分优化           2003:违规扣减
+                 10004:双人对战
+                """
+                if state.rule_id==1 or state.rule_id==1002:
+                    self.process_news()
+                elif state.rule_id==2 or state.rule_id==1003:
+                    self.process_videos()
+                elif state.rule_id==4:
+                    if self.enable_special_test==True:
+                        self.process_special_test()
+                elif state.rule_id==5:
+                    if self.enable_weekly_test==True:
+                        self.process_weekly_test()
+                elif state.rule_id==6:
+                    if self.enable_daily_test==True:
+                        self.process_daily_test()
+                elif state.rule_id in [7,8,9,10,11,1004,13,14,15,2001,2002,2003]:
+                    self.thread_logger.info("%s 无需处理" %state.name)
+                else:
+                    self.thread_logger.error("暂不支持 %s 的处理" %state.name)
+            self.update_requests_cookies_with_selenium()
+            state.update_self_finish_status(session=self.request_session)
+    def upload_database(self):
+        # TODO Find or create an API
+        pass

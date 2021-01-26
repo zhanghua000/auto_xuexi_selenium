@@ -4,3 +4,4 @@ config.json
 *.log
 qr.png
 video.mp4
+__pycache__
