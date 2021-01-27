@@ -92,8 +92,19 @@ class XuexiProcessor:
                  browser_type:str = "edge_chromium",qr_login:bool = True,
                  enable_special_test:bool = True,enable_weekly_test:bool = True,
                  enable_daily_test:bool = True,browser_exec:str = None,
-                 driver_exec:str = None):
+                 driver_exec:str = None,enable_gui:bool = False,gui_show_pic_signal = None,
+                 scan_signal = None):
         self.is_debug=is_debug
+        self.is_answer_in_db_updated=False
+        self.timeout=timeout
+        self.record_days=record_days
+        self.qr_login=qr_login
+        self.enable_special_test=enable_special_test
+        self.enable_weekly_test=enable_weekly_test
+        self.enable_daily_test=enable_daily_test
+        self.enable_gui=enable_gui
+        self.gui_show_pic_signal=gui_show_pic_signal
+        self.scan_signal=scan_signal
         self.thread_logger=logging.getLogger("thread")
         if is_debug==True:
             self.thread_logger.setLevel(logging.DEBUG)
@@ -102,17 +113,11 @@ class XuexiProcessor:
         formatter=logging.Formatter(fmt="%(asctime)s-%(levelname)s-%(message)s",datefmt="%Y-%m-%d %H:%M:%S")
         file_handler=logging.FileHandler(filename="thread.log",mode="w",encoding="utf-8")
         file_handler.setFormatter(formatter)
-        stream_handler=logging.StreamHandler(stream=sys.stdout)
-        stream_handler.setFormatter(formatter)
         self.thread_logger.addHandler(file_handler)
-        self.thread_logger.addHandler(stream_handler)
-        self.is_answer_in_db_updated=False
-        self.timeout=timeout
-        self.record_days=record_days
-        self.qr_login=qr_login
-        self.enable_special_test=enable_special_test
-        self.enable_weekly_test=enable_weekly_test
-        self.enable_daily_test=enable_daily_test
+        if self.enable_gui==False:
+            stream_handler=logging.StreamHandler(stream=sys.stdout)
+            stream_handler.setFormatter(formatter)
+            self.thread_logger.addHandler(stream_handler)
         if self.is_debug==True:
             self.thread_logger.debug("当前处于调试模式")
         else:
@@ -166,7 +171,7 @@ class XuexiProcessor:
                 firefox_options.add_argument("-headless")
             self.browser_driver=Firefox(firefox_binary=browser_exec,executable_path=driver_exec,options=firefox_options)
         else:
-            self.thread_logger.error("设置中使用了不支持的浏览器")
+            self.thread_logger.error("设置中使用了不支持的浏览器 %s" %browser_type)
             raise RuntimeError("设置中使用了不支持的浏览器")
         self.browser_driver.maximize_window()
         self.request_session=requests.session()
@@ -187,6 +192,8 @@ class XuexiProcessor:
         self.browser_driver.switch_to.frame(target_iframe)
         img=WebDriverWait(driver=self.browser_driver,timeout=5).until(expected_conditions.visibility_of_element_located((By.CLASS_NAME,"login_qrcode_content"))).find_element_by_tag_name("img")
         img=base64.b64decode(img.get_attribute("src").replace("data:image/png;base64,",""))
+        if self.enable_gui==True:
+            self.gui_show_pic_signal.emit(img)
         with open(file="qr.png",mode="wb") as img_writer:
             img_writer.write(img)
         self.thread_logger.info("请使用APP扫描下方的二维码完成登陆，如果无法扫描，可以手动打开程序文件夹内的 qr.png 文件扫描")
@@ -200,6 +207,9 @@ class XuexiProcessor:
         if WebDriverWait(driver=self.browser_driver,timeout=300).until(expected_conditions.title_is("学习强国"))==False:
             self.thread_logger.error("二维码过期，正在重新生成可以扫描的二维码")
             self.get_qr_code()
+        if self.scan_signal!=None:
+            self.scan_signal.emit(True)
+            self.thread_logger.debug("已提交关闭登陆界面的信号")
         return 0
     def user_name_handler(self):
         self.thread_logger.error("现已不支持用户名登陆，正在切换至二维码登陆")
@@ -293,8 +303,9 @@ class XuexiProcessor:
     def process_news(self):
         while True:
             if self.is_news_read()==True:
-                self.browser_driver.close()
-                self.browser_driver.switch_to.window(self.browser_driver.window_handles[0])
+                if self.browser_driver.current_window_handle!=self.browser_driver.window_handles[0]:
+                    self.browser_driver.close()
+                    self.browser_driver.switch_to.window(self.browser_driver.window_handles[0])
                 self.thread_logger.debug("已完成处理全部文章")
                 break
             news=self.get_news()
@@ -308,9 +319,13 @@ class XuexiProcessor:
                 self.browser_driver.execute_script(script="window.open('%s')" %each_news.url)
                 self.thread_logger.debug("以 %s 打开新标签页" %each_news.url)
                 self.browser_driver.switch_to.window(self.browser_driver.window_handles[1])
-                title_element=WebDriverWait(driver=self.browser_driver,timeout=10).until(expected_conditions.visibility_of_element_located((By.CLASS_NAME,"render-detail-title")))
-                self.thread_logger.debug("实际标题：%s" %title_element.text.replace("\n",""))
-                self.thread_logger.debug("目标标题：%s" %each_news.title)
+                try:
+                    title_element=WebDriverWait(driver=self.browser_driver,timeout=10).until(expected_conditions.visibility_of_element_located((By.CLASS_NAME,"render-detail-title")))
+                except TimeoutException:
+                    title_element=WebDriverWait(driver=self.browser_driver,timeout=10).until(expected_conditions.visibility_of_element_located((By.CLASS_NAME,"video-article-title")))
+                finally:
+                    self.thread_logger.debug("实际标题：%s" %title_element.text.replace("\n",""))
+                    self.thread_logger.debug("目标标题：%s" %each_news.title)
                 if self.is_partial_match(string1=each_news.title,string2=title_element.text):
                     while True:
                         height=self.browser_driver.execute_script(script="return action=document.body.scrollHeight")
@@ -337,8 +352,9 @@ class XuexiProcessor:
                     self.thread_logger.info("视频 %s 在 %d 天内阅读过，正在跳过" %(video.title,self.record_days))
                     continue
                 if self.is_videos_watched()==True:
-                    self.browser_driver.close()
-                    self.browser_driver.switch_to.window(self.browser_driver.window_handles[0])
+                    if self.browser_driver.current_window_handle!=self.browser_driver.window_handles[0]:
+                        self.browser_driver.close()
+                        self.browser_driver.switch_to.window(self.browser_driver.window_handles[0])
                     self.thread_logger.info("视频得分已达到目标，无需处理")
                     break
                 video_start_time=time.time()
@@ -441,10 +457,10 @@ class XuexiProcessor:
                     try:
                         each_item.find_element_by_class_name("label")
                     except NoSuchElementException:
+                        orig_url=self.browser_driver.current_url
                         each_item.find_element_by_class_name("button").click()
                         self.thread_logger.debug("已点击按钮")
-                        test_url=self.browser_driver.current_url
-                        self.process_test(url=test_url,current_page=True)
+                        self.process_test(url=self.browser_driver.current_url,current_page=True,orig_url=orig_url)
                         self.thread_logger.debug("正在终止循环以获取新页面")
                         break
                     else:
@@ -452,7 +468,7 @@ class XuexiProcessor:
                 else:
                     self.thread_logger.info("%s 的专项答题已完成，将跳过" %title)
                     continue
-    def process_test(self,url:str,current_page=False):
+    def process_test(self,url:str,orig_url:str = "",current_page=False):
         main_window=self.browser_driver.current_window_handle
         if current_page==False:
             self.browser_driver.execute_script("window.open('%s')" %url)
@@ -598,6 +614,17 @@ class XuexiProcessor:
             self.thread_logger.debug("已关闭标签页")
             self.browser_driver.switch_to.window(main_window)
             self.thread_logger.debug("已切换回第一个标签页")
+        else:
+            try:
+                WebDriverWait(driver=self.browser_driver,timeout=5).until(expected_conditions.element_to_be_clickable((By.CLASS_NAME,"action")))
+            except NoSuchElementException:
+                pass
+            else:
+                self.thread_logger.debug("正在打开网页")
+                if orig_url!="":
+                    self.browser_driver.get(orig_url)
+                else:
+                    self.browser_driver.back()
     def gen_scroll_to_pos(self,height:int,current_pos:int): 
         if current_pos+50>height:
             return current_pos-random.randint(0,50)
@@ -732,4 +759,6 @@ class XuexiProcessor:
             state.update_self_finish_status(session=self.request_session)
     def upload_database(self):
         # TODO Find or create an API
+        pass
+    def exec_command(self,cmd:str):
         pass

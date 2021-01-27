@@ -8,3 +8,5 @@ selenium
 Pillow
 pycryptodome
 fuzzywuzzy[speedup]
+QtAwesome
+PyQt5

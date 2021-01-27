@@ -8,8 +8,12 @@ import zipfile
 import logging
 import requests
 import win32api
+import ctypes
+from GUI import UI
+from PyQt5.QtWidgets import QApplication
 from AutoXuexiCore import XuexiProcessor
 os.chdir(os.path.split(os.path.realpath(__file__))[0])
+ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("myappid")
 logger=logging.getLogger("main")
 logger.setLevel(logging.INFO)
 formatter=logging.Formatter(fmt="%(asctime)s-%(levelname)s-%(message)s",datefmt="%Y-%m-%d %H:%M:%S")
@@ -20,6 +24,24 @@ stream_handler.setFormatter(formatter)
 logger.addHandler(file_handler)
 logger.addHandler(stream_handler)
 def load_config(conf_name:str = "config.json"):
+    default_ui_conf={
+        "auto_start":True,
+        "close_button_style": "QPushButton{background:#F76677;border-radius:5px;border:none;}QPushButton:hover{background:red;}",
+        "icon": "mdi.notebook-edit-outline",
+        "log_panel_style": "QPlainTextEdit{font-family:Microsoft YaHei}",
+        "log_scroll_bar_style":"QScrollBar:vertical{color:#BBBBBB;border:none;border-radius:5px;width:10px;}QScrollBar::handle:vertical{color:#BCBCBC;border:none;border-radius:5px;width:15px;}QScrollBar::handle:vertical:hover{color:#BDBDBD;}QScrollBar::add-page:vertical{color:white;border:none;border-radius:5px;width:10px;}QScrollBar::sub-page:vertical{color:white;border:none;border-radius:5px;width:10px;}QScrollBar::down-arrow:vertical{color:#BABABA;border:none;border-radius:5px;width:10px;height:10px;}QScrollBar::up-arrow:vertical{color:#BABABA;border:none;border-radius:10px;width:5px;height:10px;}QScrollBar::sub-line:vertical{color:gray;border:none;border-radius:10px;width:10px;}QScrollBar::add-line:vertical{color:gray;border:none;border-radius:5px;width:10px;}",
+        "maximum_button_style": "QPushButton{background:#F7D674;border-radius:5px;border:none;}QPushButton:hover{background:yellow;}",
+        "minimum_button_style": "QPushButton{background:#6DDF6D;border-radius:5px;border:none;}QPushButton:hover{background:green;}",
+        "opacity": 0.9,
+        "qr_style":"QLabel{color:white;font-size:20px;font-family:DengXian;border:none;border-radius:5px;}",
+        "qr_title_style":"QLabel{color:white;font-size:20px;font-family:DengXian;border:none;border-radius:5px;}",
+        "start_button":"mdi.check",
+        "start_button_color":"#22DDDD",
+        "start_button_style":"QPushButton{background:#00F777;border:none;border-radius:5px;font-size:20px;font-family:DengXian;}QPushButton:hover{background:SpringGreen;}",
+        "title_color": "red",
+        "title_style": "QLabel{color:white;font-size:40px;font-family:DengXian;border:none;border-radius:5px;}",
+        "ui":"QWidget{background-color:#BBBBBB;}"
+    }
     default_conf={
         "enable_daily_test":True,
         "enable_weekly_test":True,
@@ -32,12 +54,14 @@ def load_config(conf_name:str = "config.json"):
         "browser_type":"edge_chromium",
         "allow_upload":True,
         "browser_exec":"",
-        "driver_exec":""}
+        "driver_exec":"",
+        "ui":default_ui_conf}
     if os.path.exists(conf_name)==True:
         with open(file=conf_name,mode="r",encoding="utf-8") as conf_reader:
             conf=json.loads(conf_reader.read())
         for key in ["enable_daily_test","enable_special_test","enable_weekly_test",
-                    "qr_login","is_debug","timeout","record_days","browser_type","allow_upload"]:
+                    "qr_login","is_debug","timeout","record_days","browser_type","allow_upload",
+                    "browser_exec","driver_exec","enable_gui","lang"]:
             if key in conf.keys()==False:
                 with open(file=conf_name,mode="w",encoding="utf-8") as conf_creater:
                     conf_creater.write(json.dumps(obj=default_conf,sort_keys=True,indent=4))
@@ -84,20 +108,7 @@ def get_edge_version():
         re_res=re.search(r"^\d*.\d*.\d*.\d*$",dir)
         if re_res!=None:
             return re_res.group()
-if __name__=="__main__":
-    conf=load_config()
-    enable_daily_test=bool(conf["enable_daily_test"])
-    enable_special_test=bool(conf["enable_special_test"])
-    enable_weekly_test=bool(conf["enable_weekly_test"])
-    qr_login=bool(conf["qr_login"])
-    is_debug=bool(conf["is_debug"])
-    edge_version=str(conf["edge_version"])
-    timeout=int(conf["timeout"])
-    record_days=int(conf["record_days"])
-    browser_type=str(conf["browser_type"])
-    browser_exec=str(conf["browser_exec"])
-    driver_exec=str(conf["driver_exec"])
-    allow_upload=bool(conf["allow_upload"])
+def init_function(enable_gui=False,signal=None,scan_signal=None):
     if browser_type=="edge_chromium":
         if os.path.exists("msedgedriver.exe")==False:
             logger.info("未发现Edge浏览器驱动，正在下载浏览器驱动")
@@ -117,7 +128,8 @@ if __name__=="__main__":
                             timeout=timeout,record_days=record_days,browser_type=browser_type,
                             qr_login=qr_login,enable_special_test=enable_special_test,
                             enable_weekly_test=enable_weekly_test,enable_daily_test=enable_daily_test,
-                            browser_exec=browser_exec,driver_exec=driver_exec)
+                            browser_exec=browser_exec,driver_exec=driver_exec,enable_gui=enable_gui,
+                            gui_show_pic_signal=signal,scan_signal=scan_signal)
     processor.start_process()
     processor.close_driver()
     mins,secs=divmod(int(time.time()-start_time),60)
@@ -127,14 +139,17 @@ if __name__=="__main__":
         "enable_daily_test":enable_daily_test,
         "enable_special_test":enable_special_test,
         "enable_weekly_test":enable_weekly_test,
+        "enable_gui":enable_gui,
         "is_debug":is_debug,
+        "lang":lang,
         "qr_login":qr_login,
         "timeout":timeout,
         "record_days":record_days,
         "browser_type":browser_type,
         "allow_upload":allow_upload,
         "browser_exec":browser_exec,
-        "driver_exec":driver_exec}
+        "driver_exec":driver_exec,
+        "ui":ui_conf}
     if current_conf["browser_type"]=="edge_chromium":
         current_conf["edge_version"]=edge_version
     if current_conf!=conf:
@@ -144,4 +159,36 @@ if __name__=="__main__":
     if processor.is_answer_in_db_updated==True and allow_upload==True:
         logger.info("正在更新答案数据库到网络")
         processor.upload_database()
-    
+def test_func(enable_gui=True,signal=None):
+    logger_=logging.getLogger("thread")
+    logger_.info("已启动")
+if __name__=="__main__":
+    conf=load_config()
+    enable_daily_test=bool(conf["enable_daily_test"])
+    enable_special_test=bool(conf["enable_special_test"])
+    enable_weekly_test=bool(conf["enable_weekly_test"])
+    qr_login=bool(conf["qr_login"])
+    is_debug=bool(conf["is_debug"])
+    edge_version=str(conf["edge_version"])
+    timeout=int(conf["timeout"])
+    record_days=int(conf["record_days"])
+    browser_type=str(conf["browser_type"])
+    browser_exec=str(conf["browser_exec"])
+    driver_exec=str(conf["driver_exec"])
+    allow_upload=bool(conf["allow_upload"])
+    enable_gui=bool(conf["enable_gui"])
+    ui_conf=dict(conf["ui"])
+    lang=str(conf["lang"])
+    if is_debug==True:
+        logger.setLevel(logging.DEBUG)
+    else:
+        logger.setLevel(logging.INFO)
+    if enable_gui==False:
+        logger.debug("已禁用图形界面")
+        init_function()
+    else:
+        logger.debug("已启用图形界面")
+        app=QApplication(sys.argv)
+        gui=UI(ui_conf=ui_conf,init_func=init_function)
+        gui.show()
+        sys.exit(app.exec_())
