@@ -113,4 +113,4 @@ if __name__=="__main__":
         app=QApplication(sys.argv)
         gui=UI(ui_conf=ui_conf,init_func=init_function)
         gui.show()
-        sys.exit(app.exec_())
+        app.exec_()

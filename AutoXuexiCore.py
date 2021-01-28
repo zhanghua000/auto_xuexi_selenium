@@ -9,6 +9,7 @@ import qrcode
 import time
 import pprint
 import random
+import ipfshttpclient
 from PIL import Image
 from fuzzywuzzy import fuzz
 from Crypto.Cipher import AES
@@ -88,7 +89,7 @@ class XuexiStateDetail:
                 else:
                     self.is_finished=False
 class XuexiProcessor:
-    def __init__(self,is_debug=True,timeout=600,record_days=3,
+    def __init__(self,is_debug:bool = True,timeout:int = 600,record_days:int = 3,
                  browser_type:str = "edge_chromium",qr_login:bool = True,
                  enable_special_test:bool = True,enable_weekly_test:bool = True,
                  enable_daily_test:bool = True,browser_exec:str = None,
@@ -136,7 +137,7 @@ class XuexiProcessor:
             conn=sqlite3.connect("database.db")
             cur=conn.cursor()
             for rec_time in cur.execute("SELECT time FROM records").fetchall():
-                if int(time.time()-float(rec_time[0]))>=3*24*3600:
+                if int(time.time()-float(rec_time[0]))>=record_days*24*3600:
                     del_list=cur.execute("SELECT url FROM records WHERE time='%s'" %rec_time).fetchall()
                     cur.execute("DELETE FROM records WHERE time='%s'" %rec_time)
                     self.thread_logger.debug("已删除时间为 %s 的数据库条目 %s" %(rec_time,del_list))
@@ -194,15 +195,16 @@ class XuexiProcessor:
         img=base64.b64decode(img.get_attribute("src").replace("data:image/png;base64,",""))
         if self.enable_gui==True:
             self.gui_show_pic_signal.emit(img)
-        with open(file="qr.png",mode="wb") as img_writer:
-            img_writer.write(img)
-        self.thread_logger.info("请使用APP扫描下方的二维码完成登陆，如果无法扫描，可以手动打开程序文件夹内的 qr.png 文件扫描")
-        qr=qrcode.QRCode()
-        qr_data=""
-        for data in decode(Image.open("qr.png")):
-            qr_data=qr_data+data.data.decode("utf-8")
-        qr.add_data(qr_data)
-        qr.print_ascii(invert=True)
+        else:
+            with open(file="qr.png",mode="wb") as img_writer:
+                img_writer.write(img)
+            self.thread_logger.info("请使用APP扫描下方的二维码完成登陆，如果无法扫描，可以手动打开程序文件夹内的 qr.png 文件扫描")
+            qr=qrcode.QRCode()
+            qr_data=""
+            for data in decode(Image.open("qr.png")):
+                qr_data=qr_data+data.data.decode("utf-8")
+            qr.add_data(qr_data)
+            qr.print_ascii(invert=True)
         self.browser_driver.switch_to.default_content()
         if WebDriverWait(driver=self.browser_driver,timeout=300).until(expected_conditions.title_is("学习强国"))==False:
             self.thread_logger.error("二维码过期，正在重新生成可以扫描的二维码")
@@ -723,6 +725,7 @@ class XuexiProcessor:
         conn.commit()
         conn.close()
     def start_process(self):
+        self.get_query_state()
         for state in self.query_states.states:
             self.thread_logger.info("正在处理 %s 的内容" %state.name)
             if state.is_finished==True:
@@ -758,7 +761,8 @@ class XuexiProcessor:
             self.update_requests_cookies_with_selenium()
             state.update_self_finish_status(session=self.request_session)
     def upload_database(self):
-        # TODO Find or create an API
+        # 找到或制造一个API
+        #client=ipfshttpclient.connect("/ip4/127.0.0.1/tcp/25001")
         pass
     def exec_command(self,cmd:str):
         pass

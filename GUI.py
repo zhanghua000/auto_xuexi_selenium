@@ -10,7 +10,6 @@ class QLogger(logging.Handler):
         super().__init__()
         self.widget=QPlainTextEdit(parent)
         self.widget.setReadOnly(True)
-        self.widget.textChanged.connect(self.scroll_widget_to_bottom)
     def emit(self,record):
         msg=self.format(record)
         self.widget.appendPlainText(msg)
@@ -71,6 +70,7 @@ class UI(QWidget):
         self.logger=logging.getLogger("thread")
         self.logger.addHandler(self.qlogger)
         self.qlogger.widget.setStyleSheet(ui_conf["log_panel_style"])
+        self.qlogger.widget.textChanged.connect(self.qlogger.scroll_widget_to_bottom)
         bar=self.qlogger.widget.verticalScrollBar()
         bar.setStyleSheet(ui_conf["log_scroll_bar_style"])
         self.ui_layout.addWidget(self.qlogger.widget,1,1)

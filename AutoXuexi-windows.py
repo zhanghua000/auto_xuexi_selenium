@@ -151,7 +151,7 @@ def init_function(enable_gui=False,signal=None,scan_signal=None):
         "driver_exec":driver_exec,
         "ui":ui_conf}
     if current_conf["browser_type"]=="edge_chromium":
-        current_conf["edge_version"]=edge_version
+        current_conf["edge_version"]=get_edge_version()
     if current_conf!=conf:
         logger.debug("当前配置已更改，正在更新配置到文件")
         with open(file="config.json",mode="w",encoding="utf-8") as conf_updater:
@@ -191,4 +191,4 @@ if __name__=="__main__":
         app=QApplication(sys.argv)
         gui=UI(ui_conf=ui_conf,init_func=init_function)
         gui.show()
-        sys.exit(app.exec_())
+        app.exec_()
