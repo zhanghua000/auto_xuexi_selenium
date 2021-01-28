@@ -18,6 +18,25 @@ stream_handler.setFormatter(formatter)
 logger.addHandler(file_handler)
 logger.addHandler(stream_handler)
 def load_config(conf_name:str = "config.json"):
+    default_ui_conf={
+        "auto_start": False,
+        "close_button_style": "QPushButton{background:#68B0AB;border-radius:5px;border:none;}QPushButton:hover{background:#726A95;}",
+        "icon": "mdi.notebook-edit-outline",
+        "log_panel_style": "QPlainTextEdit{font-family:Microsoft YaHei}",
+        "log_scroll_bar_style": "QScrollBar:vertical{color:#BBBBBB;border:none;border-radius:5px;width:10px;}QScrollBar::handle:vertical{color:#BCBCBC;border:none;border-radius:5px;width:15px;}QScrollBar::handle:vertical:hover{color:#BDBDBD;}QScrollBar::add-page:vertical{color:white;border:none;border-radius:5px;width:10px;}QScrollBar::sub-page:vertical{color:white;border:none;border-radius:5px;width:10px;}QScrollBar::down-arrow:vertical{color:#BABABA;border:none;border-radius:5px;width:10px;height:10px;}QScrollBar::up-arrow:vertical{color:#BABABA;border:none;border-radius:10px;width:5px;height:10px;}QScrollBar::sub-line:vertical{color:gray;border:none;border-radius:10px;width:10px;}QScrollBar::add-line:vertical{color:gray;border:none;border-radius:5px;width:10px;}",
+        "maximum_button_style": "QPushButton{background:#8FC0A9;border-radius:5px;border:none;}QPushButton:hover{background:#709FB0;}",
+        "minimum_button_style": "QPushButton{background:#C8D5B9;border-radius:5px;border:none;}QPushButton:hover{background:#A0C1B8;}",
+        "opacity": 0.9,
+        "qr_style": "QLabel{color:while;font-size:20px;font-family:DengXian;border:none;border-radius:5px;}",
+        "qr_title_style": "QLabel{color:while;font-size:20px;font-family:DengXian;border:none;border-radius:5px;}",
+        "start_button": "mdi.send-circle-outline",
+        "start_button_color": "darkgreen",
+        "start_button_style": "QPushButton{background:#FAF3DD;border:none;border-radius:5px;font-size:20px;font-family:DengXian;}QPushButton:hover{background:#F4EBC1;}",
+        "title_color": "red",
+        "title_style": "QLabel{color:white;font-size:40px;font-family:DengXian;border:none;border-radius:5px;background:transparent;}",
+        "ui": "QWidget{background:white;}",
+        "working_button": "mdi.record-circle-outline"
+    }
     default_conf={
         "enable_daily_test":True,
         "enable_weekly_test":True,
@@ -31,7 +50,8 @@ def load_config(conf_name:str = "config.json"):
         "allow_upload":True,
         "browser_exec":"",
         "driver_exec":"",
-        "enable_gui":True}
+        "enable_gui":False,
+        "ui":default_ui_conf}
     if os.path.exists(conf_name)==True:
         with open(file=conf_name,mode="r",encoding="utf-8") as conf_reader:
             conf=json.loads(conf_reader.read())
