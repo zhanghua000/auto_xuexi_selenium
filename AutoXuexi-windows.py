@@ -10,7 +10,7 @@ import requests
 import win32api
 import ctypes
 from GUI import UI
-from PyQt5.QtWidgets import QApplication
+from PyQt6.QtWidgets import QApplication
 from AutoXuexiCore import XuexiProcessor
 os.chdir(os.path.split(os.path.realpath(__file__))[0])
 ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("myappid")
@@ -193,4 +193,4 @@ if __name__=="__main__":
         app=QApplication(sys.argv)
         gui=UI(ui_conf=ui_conf,init_func=init_function)
         gui.show()
-        app.exec_()
+        sys.exit(app.exec())

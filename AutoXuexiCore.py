@@ -315,6 +315,12 @@ class XuexiProcessor:
                 if self.is_item_read(url=each_news.url,days=self.record_days)==True:
                     self.thread_logger.info("文章 %s 在 %d 天阅读过，正在跳过" %(each_news.title,self.record_days))
                     continue
+                if self.is_news_read()==True:
+                    if self.browser_driver.current_window_handle!=self.browser_driver.window_handles[0]:
+                        self.browser_driver.close()
+                        self.browser_driver.switch_to.window(self.browser_driver.window_handles[0])
+                    self.thread_logger.debug("已结束处理文章")
+                    break
                 self.thread_logger.info("正在处理文章 %s" %each_news.title)
                 news_start_time=time.time()
                 orig_score=self.get_today_score()
