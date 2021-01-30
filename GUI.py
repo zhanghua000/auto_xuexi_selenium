@@ -12,48 +12,61 @@ from PyQt6.QtWidgets import QCheckBox, QDialog, QFileDialog, QHBoxLayout, QListW
 os.chdir(os.path.split(os.path.realpath(__file__))[0])
 class CustomListWidget(QListWidget):
     def __init__(self):
-        super(QListWidget,self).__init__()
+        super(CustomListWidget,self).__init__()
+        self.save_item=None
         self.is_buttons_shown=False
-        self.button_widget=QWidget(parent=self)
         self.add_button=QPushButton("添加")
-        self.remove_button=QPushButton("删除")
-        self.input_edit=QLineEdit(parent=self)
-        self.ok_button=QPushButton(parent=self)
-        self.button_layout=QVBoxLayout()
-        self.button_widget.setLayout(self.button_layout)
-        self.button_layout.addWidget(self.add_button)
-        self.button_layout.addWidget(self.remove_button)
+        self.add_button.setParent(self)
         self.add_button.setVisible(False)
+        self.remove_button=QPushButton("删除")
+        self.remove_button.setParent(self)
         self.remove_button.setVisible(False)
+        self.input_edit=QLineEdit()
+        self.input_edit.setParent(self)
         self.input_edit.setVisible(False)
+        self.input_edit.setFixedSize(75,25)
+        self.ok_button=QPushButton("确定")
+        self.ok_button.setParent(self)
         self.ok_button.setVisible(False)
         self.add_button.clicked.connect(self.show_add_interface)
         self.remove_button.clicked.connect(self.remove_current_item)
-        self.itemActivated.connect(self.move_buttons)
-        
-    def mousePressEvent(self,event:QMouseEvent):
-        super(QListWidget,self).mousePressEvent(event)
-        if self.is_buttons_shown==True:
-            self.button_widget.move(int(event.globalPosition().x()),int(event.globalPosition().y()))
-    def show_add_interface(self):
-        pass
-    def remove_current_item(self):
-        if self.currentItem()!=None:
-            self.removeItemWidget(self.currentItem())
-    def show_buttons(self):
-        if self.currentItem()!=None:
+        self.ok_button.clicked.connect(self.add_item_to_list)       
+        self.itemClicked.connect(self.show_menu_buttons) 
+
+    def show_menu_buttons(self,item):
+        if self.is_buttons_shown==False:
             self.is_buttons_shown=True
-            self.button_widget.setVisible(True)
             self.add_button.setVisible(True)
+            self.add_button.move(0,0)
             self.remove_button.setVisible(True)
-        else:
+            self.remove_button.move(75,0)
+        elif self.save_item==item:
             self.is_buttons_shown=False
-            self.button_widget.setVisible(False)
             self.add_button.setVisible(False)
             self.remove_button.setVisible(False)
-    def move_buttons(self,item):
-        if item!=None:
-            self.show_buttons()
+            if self.input_edit.isVisible()==True:
+                self.input_edit.setVisible(False)
+            if self.ok_button.isVisible()==True:
+                self.ok_button.setVisible(False)
+        self.save_item=item
+    def show_add_interface(self):
+        if self.input_edit.isVisible()==False:
+            self.input_edit.setVisible(True)
+        if self.ok_button.isVisible()==False:
+            self.ok_button.setVisible(True)
+        self.input_edit.move(0,25)
+        self.ok_button.move(75,25)
+    def remove_current_item(self):
+        if self.currentItem()!=None and self.count()>1:
+            self.takeItem(self.row(self.currentItem()))
+    def add_item_to_list(self):
+        if self.input_edit.displayText()!="" and self.findItems(self.input_edit.displayText(),Qt.MatchFlags.MatchExactly)==[]:
+            self.addItem(self.input_edit.displayText())
+        self.input_edit.setVisible(False)
+        self.ok_button.setVisible(False)
+        self.add_button.setVisible(False)
+        self.remove_button.setVisible(False)
+        self.is_buttons_shown=False
 class FixedSlider(QSlider):
     def __init__(self):
         super(FixedSlider,self).__init__()
