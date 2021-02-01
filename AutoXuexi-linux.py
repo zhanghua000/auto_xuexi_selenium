@@ -19,23 +19,31 @@ logger.addHandler(file_handler)
 logger.addHandler(stream_handler)
 def load_config(conf_name:str = "config.json"):
     default_ui_conf={
+        "at_top": True,
         "auto_start": False,
-        "close_button_style": "QPushButton{background:#68B0AB;border-radius:5px;border:none;}QPushButton:hover{background:#726A95;}",
+        "close_button_style": "QPushButton{background:#FFE3ED;border-radius:5px;border:none;}QPushButton:hover{background:#EC524B;}",
+        "conf_button_color": "darkgreen",
+        "conf_button_icon": "mdi.cog-outline",
+        "conf_button_style": "QPushButton{background:#9BE3DE;border:none;border-radius:5px;font-size:20px;font-family:DengXian;}QPushButton:hover{background:#9AD3BC;}",
         "icon": "mdi.notebook-edit-outline",
-        "log_panel_style": "QPlainTextEdit{font-family:Microsoft YaHei}",
-        "log_scroll_bar_style": "QScrollBar:vertical{color:#BBBBBB;border:none;border-radius:5px;width:10px;}QScrollBar::handle:vertical{color:#BCBCBC;border:none;border-radius:5px;width:15px;}QScrollBar::handle:vertical:hover{color:#BDBDBD;}QScrollBar::add-page:vertical{color:white;border:none;border-radius:5px;width:10px;}QScrollBar::sub-page:vertical{color:white;border:none;border-radius:5px;width:10px;}QScrollBar::down-arrow:vertical{color:#BABABA;border:none;border-radius:5px;width:10px;height:10px;}QScrollBar::up-arrow:vertical{color:#BABABA;border:none;border-radius:10px;width:5px;height:10px;}QScrollBar::sub-line:vertical{color:gray;border:none;border-radius:10px;width:10px;}QScrollBar::add-line:vertical{color:gray;border:none;border-radius:5px;width:10px;}",
-        "maximum_button_style": "QPushButton{background:#8FC0A9;border-radius:5px;border:none;}QPushButton:hover{background:#709FB0;}",
-        "minimum_button_style": "QPushButton{background:#C8D5B9;border-radius:5px;border:none;}QPushButton:hover{background:#A0C1B8;}",
+        "log_panel_style": "QPlainTextEdit{font-family:Microsoft YaHei;background:#F3EAC2;border:none;border-radius:5px;}QScrollBar:vertical,QScrollBar::handle:vertical{background:#F3EAC2;border:none;border-radius:8px;width:16px;}QScrollBar::handle:vertical:hover{background:#F5B461;}QScrollBar::add-page:vertical,QScrollBar::sub-page:vertical{background:#FFFDF9;border:none;border-radius:8px;width:16px;}QScrollBar::down-arrow:vertical,QScrollBar::up-arrow:vertical{background:#F5B461;border:none;border-radius:8px;width:16px;height:16px;}QScrollBar::sub-line:vertical,QScrollBar::add-line:vertical{background:transparent;border:none;}",
+        "maximum_button_style": "QPushButton{background:#FFFDF9;border-radius:5px;border:none;}QPushButton:hover{background:#F5B461;}",
+        "merge_db_color": "darkgreen",
+        "merge_db_icon": "mdi.merge",
+        "merge_db_style": "QPushButton{background:#9BE3DE;border:none;border-radius:5px;font-size:20px;font-family:DengXian;}QPushButton:hover{background:#9AD3BC;}",
+        "minimum_button_style": "QPushButton{background:#BEEBE9;border-radius:5px;border:none;}QPushButton:hover{background:#F3EAC2;}",
         "opacity": 0.9,
-        "qr_style": "QLabel{color:while;font-size:20px;font-family:DengXian;border:none;border-radius:5px;}",
-        "qr_title_style": "QLabel{color:while;font-size:20px;font-family:DengXian;border:none;border-radius:5px;}",
-        "start_button": "mdi.send-circle-outline",
-        "start_button_color": "darkgreen",
-        "start_button_style": "QPushButton{background:#FAF3DD;border:none;border-radius:5px;font-size:20px;font-family:DengXian;}QPushButton:hover{background:#F4EBC1;}",
-        "title_color": "red",
-        "title_style": "QLabel{color:white;font-size:40px;font-family:DengXian;border:none;border-radius:5px;background:transparent;}",
-        "ui": "QWidget{background:white;}",
-        "working_button": "mdi.record-circle-outline"
+        "qr_style": "QLabel{color:#F3EAC2;font-size:20px;font-family:DengXian;border:none;border-radius:5px;}",
+        "qr_title_style": "QLabel{color:#F3EAC2;font-size:20px;font-family:DengXian;border:none;border-radius:5px;}",
+        "settings": {
+            "button": "QPushButton{background:#FFFDF9;border-radius:5px;border:none;}QPushButton:hover{background:#F5B461;}",
+            "check_box": "QCheckBox::indicator{width:10px;height:10px;border:none;border-radius:5px;background:#9BE3DE;}QCheckBox::indicator:unchecked{background:#BEEBE9;}QCheckBox::indicator:unchecked:hover{background:#9AD3BC;}QCheckBox::indicator:checked{background:#9AD3BC;}",
+            "label": "QLabel{background:transparent;border:none;}",
+            "list": "QListWidget{border:none;border-radius:5px;background:transparent;}QPushButton{background:#FFFDF9;border-radius:5px;border:none;}QPushButton:hover{background:#F5B461;}QLineEdit{border:none;background:transparent;border-radius:5px;}QScrollBar:vertical,QScrollBar::handle:vertical{background:#F3EAC2;border:none;border-radius:8px;width:16px;}QScrollBar::handle:vertical:hover{background:#F5B461;}QScrollBar::add-page:vertical,QScrollBar::sub-page:vertical{background:#FFFDF9;border:none;border-radius:8px;width:16px;}QScrollBar::down-arrow:vertical,QScrollBar::up-arrow:vertical{background:#F5B461;border:none;border-radius:8px;width:16px;height:16px;}QScrollBar::sub-line:vertical,QScrollBar::add-line:vertical{background:transparent;border:none;}",
+            "slider": "QSlider{border:none;border-radius:5px;}QSlider::add-page:horizontal{background:#FFFDF9;}QSlider::sub-page:horizontal{background:qlineargradient(spread:pad,x1:0,y1:0,x2:1,y2:0,stop:0 #BEEBE9,stop:1 #9BE3DE);border:none;border-radius:5px;}QSlider::handle:horizontal{width:10px;height:10px;border:none;border-radius:5px;background:#FFFDF9;}QSlider::handle:horizontal:hover{background:#9AD3BC;}",
+            "tab": "QTabWidget:pane{border-top: 2px solid #F5B461;border-radius:5px;}QTabWidget::tab-bar{left:15px;border:none;border-radius:5px;}QTabBar::tab{background:#FFFDF9;border-radius:5px;border:none;height:20px;}QTabBar::tab:hover{background:#F5B461;}QTabBar::tab:selected{background:#F3EAC2;}",
+            "text_edit": "QLineEdit{border-radius:5px;background:transparent;}"
+        }
     }
     default_conf={
         "enable_daily_test":True,
@@ -127,10 +135,45 @@ if __name__=="__main__":
     lang=str(conf["lang"])
     if enable_gui==False:
         logger.debug("已禁用图形界面")
-        init_function()
+        logger.info("正在开始处理项目")
+        start_time=time.time()
+        processor=XuexiProcessor(is_debug=is_debug,
+                                timeout=timeout,record_days=record_days,browser_type=browser_type,
+                                qr_login=qr_login,enable_special_test=enable_special_test,
+                                enable_weekly_test=enable_weekly_test,enable_daily_test=enable_daily_test,
+                                browser_exec=browser_exec,driver_exec=driver_exec,enable_gui=enable_gui)
+        processor.start_process()
+        processor.close_driver()
+        mins,secs=divmod(int(time.time()-start_time),60)
+        hours,mins=divmod(mins,60)
+        logger.info("执行完成，共计用时 {:0>2d}:{:0>2d}:{:0>2d}".format(hours,mins,secs))
+        current_conf={
+            "enable_daily_test":enable_daily_test,
+            "enable_special_test":enable_special_test,
+            "enable_weekly_test":enable_weekly_test,
+            "enable_gui":enable_gui,
+            "is_debug":is_debug,
+            "lang":lang,
+            "qr_login":qr_login,
+            "timeout":timeout,
+            "record_days":record_days,
+            "browser_type":browser_type,
+            "allow_upload":allow_upload,
+            "browser_exec":browser_exec,
+            "driver_exec":driver_exec}
+        if current_conf["browser_type"]=="edge_chromium":
+            current_conf["edge_version"]=edge_version
+        if current_conf!=conf:
+            logger.debug("当前配置已更改，正在更新配置到文件")
+            with open(file="config.json",mode="w",encoding="utf-8") as conf_updater:
+                conf_updater.write(json.dumps(obj=current_conf,indent=4,sort_keys=True))
+        if processor.is_answer_in_db_updated==True and allow_upload==True:
+            logger.info("正在更新答案数据库到网络")
+            processor.upload_database()
+
     else:
         logger.debug("已启用图形界面")
         app=QApplication(sys.argv)
-        gui=UI(ui_conf=ui_conf,init_func=init_function)
+        gui=UI(ui_conf=ui_conf)
         gui.show()
         sys.exit(app.exec())
