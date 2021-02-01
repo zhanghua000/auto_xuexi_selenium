@@ -700,7 +700,8 @@ class XuexiProcessor:
         conn.commit()
         conn.close()
     def start_process(self):
-        if "edge" in self.browser_type:
+        self.thread_logger.debug("正在开始处理")
+        if "edge" in self.browser_type: # edge_chromium edge_legacy
             edge_options=EdgeOptions()
             if self.browser_exec!="":
                 edge_options.binary_location=self.browser_exec
@@ -778,8 +779,8 @@ class XuexiProcessor:
                     self.thread_logger.info("%s 无需处理" %state.name)
                 else:
                     self.thread_logger.error("暂不支持 %s 的处理" %state.name)
-            self.update_requests_cookies_with_selenium()
-            state.update_self_finish_status(session=self.request_session)
+                self.update_requests_cookies_with_selenium()
+                state.update_self_finish_status(session=self.request_session)
         self.close_driver()
     def upload_database(self):
         # 找到或制造一个API

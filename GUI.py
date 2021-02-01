@@ -596,11 +596,13 @@ class QLogger(logging.Handler):
 class Work(QObject):
     signal=pyqtSignal(bytes)
     scan_signal=pyqtSignal(bool)
-    def __init__(self,conf:dict={}):
+    can_quit=pyqtSignal()
+    def __init__(self,conf:dict={},logger = None):
         super().__init__()
         self.timer=QTimer()
-        with open(file="config.json",mode="r",encoding="utf-8") as conf_reader:
-            conf=json.loads(conf_reader.read())
+        if conf=={}:
+            with open(file="config.json",mode="r",encoding="utf-8") as conf_reader:
+                conf=json.loads(conf_reader.read())
         self.allow_upload=conf["allow_upload"]
         self.browser_exec=conf["browser_exec"]
         self.browser_type=conf["browser_type"]
@@ -618,14 +620,19 @@ class Work(QObject):
         self.qr_login=conf["qr_login"]
         self.record_days=conf["record_days"]
         self.timeout=conf["timeout"]
-
+        if type(logger)==logging.Logger:
+            self.logger=logger
     def start_process(self):
+        self.logger.debug("子线程正在初始化工作类")
         self.processor=XuexiProcessor(is_debug=self.is_debug,timeout=self.timeout,record_days=self.record_days,
                                         browser_type=self.browser_type,qr_login=self.qr_login,enable_special_test=self.enable_special_test,
                                         enable_weekly_test=self.enable_weekly_test,enable_daily_test=self.enable_daily_test,
                                         browser_exec=self.browser_exec,driver_exec=self.driver_exec,enable_gui=self.enable_gui,
                                         gui_show_pic_signal=self.signal,scan_signal=self.scan_signal,timer=self.timer)
+        self.logger.debug("子线程已初始化工作类")
         self.processor.start_process()
+        self.logger.debug("子线程已完成执行")
+        self.can_quit.emit()
 class UI(QWidget):
     def __init__(self,ui_conf:dict,parent=None):
         super().__init__(parent)
@@ -676,9 +683,10 @@ class UI(QWidget):
         self.ui_layout.addWidget(self.qlogger.widget,1,1)
         self.setStyleSheet(ui_conf["ui"])
         self.working_thread=QThread()
-        self.work=Work()
+        self.work=Work(logger=self.logger)
         self.work.signal.connect(self.show_qr)
         self.work.scan_signal.connect(self.close_qr)
+        self.work.can_quit.connect(self.working_thread.quit)
         self.work.moveToThread(self.working_thread)
         self.working_thread.started.connect(self.work.start_process)
         self.working_thread.finished.connect(self.finish_process)
@@ -778,9 +786,11 @@ class UI(QWidget):
         #self.start_button.setIcon(qtawesome.icon(self.ui_conf["working_button"],color=self.ui_conf["start_button_color"]))
         self.start_button.setText("执行中...")
         self.start_time=time.time()
+        self.logger.debug("正在启动子线程")
         self.working_thread.start()
     def finish_process(self):
-        self.logger.debug("正在退出线程")
+        self.logger.debug("正在退出子线程")
+        self.working_thread.wait()
         if self.start_button.isEnabled()==False:
             self.start_button.setEnabled(True)
         #self.start_button.setIcon(qtawesome.icon(self.ui_conf["start_button"],color=self.ui_conf["start_button_color"]))
