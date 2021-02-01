@@ -94,7 +94,7 @@ class XuexiProcessor:
                  enable_special_test:bool = True,enable_weekly_test:bool = True,
                  enable_daily_test:bool = True,browser_exec:str = None,
                  driver_exec:str = None,enable_gui:bool = False,gui_show_pic_signal = None,
-                 scan_signal = None):
+                 scan_signal = None,timer = None):
         self.browser_type=browser_type
         self.driver_exec=driver_exec
         self.browser_exec=browser_exec
@@ -109,6 +109,7 @@ class XuexiProcessor:
         self.enable_gui=enable_gui
         self.gui_show_pic_signal=gui_show_pic_signal
         self.scan_signal=scan_signal
+        self.timer=timer
         self.thread_logger=logging.getLogger("thread")
         if is_debug==True:
             self.thread_logger.setLevel(logging.DEBUG)
@@ -307,7 +308,7 @@ class XuexiProcessor:
                             self.browser_driver.switch_to.window(self.browser_driver.window_handles[0])
                             self.thread_logger.debug("已结束刷文章 %s" %each_news.title)
                             self.update_read_database(url=each_news.url,read_time=time.time())
-                            break                      
+                            break
                         time.sleep(random.uniform(3.0,7.0))
                 else:
                     self.thread_logger.error("加载文章页面出错")  
@@ -779,6 +780,7 @@ class XuexiProcessor:
                     self.thread_logger.error("暂不支持 %s 的处理" %state.name)
             self.update_requests_cookies_with_selenium()
             state.update_self_finish_status(session=self.request_session)
+        self.close_driver()
     def upload_database(self):
         # 找到或制造一个API
         #client=ipfshttpclient.connect("/ip4/127.0.0.1/tcp/25001")

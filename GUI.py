@@ -8,7 +8,7 @@ from AutoXuexiCore import XuexiProcessor
 #import qtawesome
 from PyQt6 import QtGui
 from PyQt6.QtGui import QIntValidator, QMouseEvent, QPixmap
-from PyQt6.QtCore import QObject, QThread, Qt, pyqtSignal
+from PyQt6.QtCore import QObject, QThread, Qt, pyqtSignal, QTimer
 from PyQt6.QtWidgets import QCheckBox, QDialog, QFileDialog, QHBoxLayout, QListWidget, QTabWidget, QWidget, QGridLayout, QVBoxLayout, QPushButton, QLabel, QPlainTextEdit, QLineEdit, QSlider
 os.chdir(os.path.split(os.path.realpath(__file__))[0])
 class CustomListWidget(QListWidget):
@@ -598,6 +598,7 @@ class Work(QObject):
     scan_signal=pyqtSignal(bool)
     def __init__(self,conf:dict={}):
         super().__init__()
+        self.timer=QTimer()
         with open(file="config.json",mode="r",encoding="utf-8") as conf_reader:
             conf=json.loads(conf_reader.read())
         self.allow_upload=conf["allow_upload"]
@@ -623,9 +624,8 @@ class Work(QObject):
                                         browser_type=self.browser_type,qr_login=self.qr_login,enable_special_test=self.enable_special_test,
                                         enable_weekly_test=self.enable_weekly_test,enable_daily_test=self.enable_daily_test,
                                         browser_exec=self.browser_exec,driver_exec=self.driver_exec,enable_gui=self.enable_gui,
-                                        gui_show_pic_signal=self.signal,scan_signal=self.scan_signal)
+                                        gui_show_pic_signal=self.signal,scan_signal=self.scan_signal,timer=self.timer)
         self.processor.start_process()
-        self.processor.close_driver()
 class UI(QWidget):
     def __init__(self,ui_conf:dict,parent=None):
         super().__init__(parent)

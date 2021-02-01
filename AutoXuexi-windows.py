@@ -179,7 +179,6 @@ if __name__=="__main__":
                                 browser_exec=browser_exec,driver_exec=driver_exec,enable_gui=enable_gui,
                                 gui_show_pic_signal=None,scan_signal=None)
         processor.start_process()
-        processor.close_driver()
         mins,secs=divmod(int(time.time()-start_time),60)
         hours,mins=divmod(mins,60)
         logger.info("执行完成，共计用时 {:0>2d}:{:0>2d}:{:0>2d}".format(hours,mins,secs))

@@ -159,7 +159,6 @@ if __name__=="__main__":
                                 enable_weekly_test=enable_weekly_test,enable_daily_test=enable_daily_test,
                                 browser_exec=browser_exec,driver_exec=driver_exec,enable_gui=enable_gui)
         processor.start_process()
-        processor.close_driver()
         mins,secs=divmod(int(time.time()-start_time),60)
         hours,mins=divmod(mins,60)
         logger.info("执行完成，共计用时 {:0>2d}:{:0>2d}:{:0>2d}".format(hours,mins,secs))
