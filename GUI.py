@@ -630,7 +630,7 @@ class UI(QWidget):
     def __init__(self,ui_conf:dict,parent=None):
         super().__init__(parent)
         self.ui_conf=ui_conf
-        icon_color=random.sample(ui_conf["title_colors"],1)[0]
+        icon_color=random.sample(self.ui_conf["title_colors"],1)[0]
         if ui_conf["at_top"]==True:
             self.setWindowFlags(Qt.WindowFlags.WindowStaysOnTopHint)
         self.setWindowTitle("自动学习")

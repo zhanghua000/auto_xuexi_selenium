@@ -49,7 +49,23 @@ def load_config(conf_name:str = "config.json"):
             "slider": "QSlider{border:none;border-radius:5px;}QSlider::add-page:horizontal{background:#FFFDF9;}QSlider::sub-page:horizontal{background:qlineargradient(spread:pad,x1:0,y1:0,x2:1,y2:0,stop:0 #BEEBE9,stop:1 #9BE3DE);border:none;border-radius:5px;}QSlider::handle:horizontal{width:10px;height:10px;border:none;border-radius:5px;background:#FFFDF9;}QSlider::handle:horizontal:hover{background:#9AD3BC;}",
             "tab": "QTabWidget:pane{border-top: 2px solid #F5B461;border-radius:5px;}QTabWidget::tab-bar{left:15px;border:none;border-radius:5px;}QTabBar::tab{background:#FFFDF9;border-radius:5px;border:none;height:20px;}QTabBar::tab:hover{background:#F5B461;}QTabBar::tab:selected{background:#F3EAC2;}",
             "text_edit": "QLineEdit{border-radius:5px;background:transparent;}"
-        }
+        },
+        "title_colors":[
+            "#9BE3DE",
+            "#BEEBE9",
+            "#FFFDF9",
+            "#FFE3ED",
+            "#9AD3BC",
+            "#F3EAC2",
+            "#F5B461",
+            "#Ec524B"
+        ],
+        "title_style":"QLabel{color:${color};background:transparent;border:none;border-radius:5px;font-size:75px;font-family:DengXian;}",
+        "ui":"QWidget{background:#F3EAC2;border:none;border-radius:5px;}",
+        "working_button":"mdi.stop-circle-outline",
+        "start_button":"mdi.arrow-right-drop-circle-outline",
+        "start_button_color":"#F5B461",
+        "start_button_style":"QPushButton{background:#9BE3DE;border:none;border-radius:5px;font-size:20px;font-family:DengXian;}QPushButton:hover{background:#9AD3BC;}"
     }
     default_conf={
         "enable_daily_test":True,
@@ -70,16 +86,16 @@ def load_config(conf_name:str = "config.json"):
     if os.path.exists(conf_name)==True:
         with open(file=conf_name,mode="r",encoding="utf-8") as conf_reader:
             conf=json.loads(conf_reader.read())
-        if ["enable_daily_test","enable_special_test","enable_weekly_test",
+        for key in ["enable_daily_test","enable_special_test","enable_weekly_test",
                     "qr_login","is_debug","timeout","record_days","browser_type","allow_upload",
-                    "browser_exec","driver_exec","enable_gui","lang"] in conf.keys() ==False:
-            with open(file=conf_name,mode="w",encoding="utf-8") as conf_creater:
-                conf_creater.write(json.dumps(obj=default_conf,sort_keys=True,indent=4))
-            logger.error("加载配置文件失败，已恢复至默认设置")
-            return default_conf
-        else:
-            logger.info("加载配置文件成功")
-            return conf
+                    "browser_exec","driver_exec","enable_gui","lang"]:
+            if key in conf.keys() ==False:
+                with open(file=conf_name,mode="w",encoding="utf-8") as conf_creater:
+                    conf_creater.write(json.dumps(obj=default_conf,sort_keys=True,indent=4))
+                logger.error("加载配置文件失败，已恢复至默认设置")
+                return default_conf
+        logger.info("加载配置文件成功")
+        return conf
     else:
         with open(file=conf_name,mode="w",encoding="utf-8") as conf_creater:
             conf_creater.write(json.dumps(obj=default_conf,sort_keys=True,indent=4))
@@ -191,6 +207,7 @@ if __name__=="__main__":
         if processor.is_answer_in_db_updated==True and allow_upload==True:
             logger.info("正在更新答案数据库到网络")
             processor.upload_database()
+        sys.exit(0)
     else:
         logger.debug("已启用图形界面")
         app=QApplication(sys.argv)
