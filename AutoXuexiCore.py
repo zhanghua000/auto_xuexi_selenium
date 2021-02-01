@@ -23,7 +23,7 @@ from selenium.webdriver import FirefoxOptions
 from msedge.selenium_tools import Edge, EdgeOptions
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions
-from selenium.common.exceptions import NoSuchElementException, TimeoutException
+from selenium.common.exceptions import NoSuchElementException, StaleElementReferenceException, TimeoutException
 os.chdir(os.path.split(os.path.realpath(__file__))[0])
 class XuexiItem:
     def __init__(self,data_dic:dict,is_debug:bool):
@@ -95,6 +95,9 @@ class XuexiProcessor:
                  enable_daily_test:bool = True,browser_exec:str = None,
                  driver_exec:str = None,enable_gui:bool = False,gui_show_pic_signal = None,
                  scan_signal = None):
+        self.browser_type=browser_type
+        self.driver_exec=driver_exec
+        self.browser_exec=browser_exec
         self.is_debug=is_debug
         self.is_answer_in_db_updated=False
         self.timeout=timeout
@@ -115,7 +118,7 @@ class XuexiProcessor:
         file_handler=logging.FileHandler(filename="thread.log",mode="w",encoding="utf-8")
         file_handler.setFormatter(formatter)
         self.thread_logger.addHandler(file_handler)
-        if self.enable_gui==False:
+        if self.enable_gui==False or is_debug==True:
             stream_handler=logging.StreamHandler(stream=sys.stdout)
             stream_handler.setFormatter(formatter)
             self.thread_logger.addHandler(stream_handler)
@@ -144,45 +147,6 @@ class XuexiProcessor:
             conn.commit()
             conn.close()
             self.thread_logger.info("数据库清理完成")
-        if "edge" in browser_type:
-            edge_options=EdgeOptions()
-            if browser_exec!="":
-                edge_options.binary_location=browser_exec
-            if driver_exec=="":
-                driver_exec="msedgedriver"
-            if is_debug==False:
-                edge_options.add_argument("headless")
-            if browser_type=="edge_chromium":
-                edge_options.use_chromium = True
-            self.browser_driver=Edge(executable_path=driver_exec,options=edge_options)
-        elif browser_type=="chrome":
-            chrome_options=ChromeOptions()
-            if browser_exec!="":
-                chrome_options.binary_location=browser_exec
-            if driver_exec=="":
-                driver_exec="chromedriver"
-            if is_debug==False:
-                chrome_options.add_argument("headless")
-            self.browser_driver=Chrome(executable_path=driver_exec,options=chrome_options)
-        elif browser_type=="firefox":
-            firefox_options=FirefoxOptions()
-            if driver_exec=="":
-                driver_exec="geckodriver"
-            if is_debug==False:
-                firefox_options.add_argument("-headless")
-            self.browser_driver=Firefox(firefox_binary=browser_exec,executable_path=driver_exec,options=firefox_options)
-        else:
-            self.thread_logger.error("设置中使用了不支持的浏览器 %s" %browser_type)
-            raise RuntimeError("设置中使用了不支持的浏览器")
-        self.browser_driver.maximize_window()
-        self.request_session=requests.session()
-        self.update_requests_cookies_with_selenium()
-        if self.qr_login==True:
-            self.get_qr_code()
-        else:
-            self.user_name_handler()
-        self.get_query_state()
-        self.thread_logger.info("当前用户ID：%d" %self.query_states.user_id)
         self.thread_logger.debug("已初始化类")
     def get_qr_code(self):
         self.browser_driver.get("https://pc.xuexi.cn/points/login.html?ref=https%3A%2F%2Fwww.xuexi.cn%2F")
@@ -502,15 +466,19 @@ class XuexiProcessor:
             answer_tips=line_feed.find_elements_by_tag_name("font")
             self.thread_logger.debug("找到 %d 个答案" %(len(answer_tips)))
             answers_=list()
-            for answer_tip in answer_tips:
-                time.sleep(1.0)
-                self.thread_logger.debug("当前答案：%s" %answer_tip.text)
-                if answer_tip.text not in ["","“"]:
-                    if "”" in answer_tip.text:
-                        tip_text=answer_tip.text.split("”")[0]
-                    else:
-                        tip_text=answer_tip.text
-                    answers_.append(tip_text)
+            try:
+                for answer_tip in answer_tips:
+                    time.sleep(1.0)
+                    self.thread_logger.debug("当前答案：%s" %answer_tip.text)
+                    if answer_tip.text not in ["","“"]:
+                        if "”" in answer_tip.text:
+                            tip_text=answer_tip.text.split("”")[0]
+                        else:
+                            tip_text=answer_tip.text
+                        answers_.append(tip_text)
+            except StaleElementReferenceException:
+                self.thread_logger.debug("元素已失效")
+                break
             self.thread_logger.debug("已找到全部答案如下：%s" %answers_)
             tips.click()
             try:
@@ -731,22 +699,67 @@ class XuexiProcessor:
         conn.commit()
         conn.close()
     def start_process(self):
+        if "edge" in self.browser_type:
+            edge_options=EdgeOptions()
+            if self.browser_exec!="":
+                edge_options.binary_location=self.browser_exec
+            if self.driver_exec=="":
+                self.driver_exec="msedgedriver"
+            if self.is_debug==False:
+                edge_options.add_argument("headless")
+            if self.browser_type=="edge_chromium":
+                edge_options.use_chromium = True
+            self.browser_driver=Edge(executable_path=self.driver_exec,options=edge_options)
+            self.thread_logger.info("已初始化 Edge 浏览器驱动")
+        elif self.browser_type=="chrome":
+            chrome_options=ChromeOptions()
+            if self.browser_exec!="":
+                chrome_options.binary_location=self.browser_exec
+            if self.driver_exec=="":
+                self.driver_exec="chromedriver"
+            if self.is_debug==False:
+                chrome_options.add_argument("headless")
+            self.browser_driver=Chrome(executable_path=self.driver_exec,options=chrome_options)
+            self.thread_logger.info("已初始化 Chrome 浏览器驱动")
+        elif self.browser_type=="firefox":
+            firefox_options=FirefoxOptions()
+            if self.driver_exec=="":
+                self.driver_exec="geckodriver"
+            if self.is_debug==False:
+                firefox_options.add_argument("-headless")
+            self.browser_driver=Firefox(firefox_binary=self.browser_exec,executable_path=self.driver_exec,options=firefox_options)
+            self.thread_logger.info("已初始化 Firefox 浏览器驱动")
+        else:
+            self.thread_logger.error("设置中使用了不支持的浏览器 %s" %self.browser_type)
+            raise RuntimeError("设置中使用了不支持的浏览器")
+        self.browser_driver.maximize_window()
+        self.thread_logger.debug("已最大化浏览器")
+        self.request_session=requests.session()
+        self.update_requests_cookies_with_selenium()
+        self.thread_logger.debug("已更新requests session的cookie")
+        if self.qr_login==True:
+            self.thread_logger.debug("使用二维码登陆")
+            self.get_qr_code()
+        else:
+            self.thread_logger.debug("使用用户名和密码登陆")
+            self.user_name_handler()
         self.get_query_state()
+        self.thread_logger.info("当前用户ID：%d" %self.query_states.user_id)
         for state in self.query_states.states:
             self.thread_logger.info("正在处理 %s 的内容" %state.name)
-            if state.is_finished==True:
+            state_status=state.is_finished
+            self.thread_logger.debug("状态：%s" %state_status)
+            if state_status==True:
                 self.thread_logger.info("%s 已完成，正在跳过处理" %state.name)
-            else:
-                """              
-                 1:阅读文章            2:视听学习              4:专项答题
-                 5:每周答题            6:每日答题              7:分享
-                 8:收藏                9:登录               1002:文章时长
-                 10:订阅            1003:视听学习时长         11:发表观点
-                 1004:连续学习达标    12:挑战答题             13:参加调查问卷活动
-                 14:本地频道          15:强国运动           2001:系统补发
-                 10001:争上游答题   2002:积分优化           2003:违规扣减
-                 10004:双人对战
-                """
+            else:            
+                #  1:阅读文章            2:视听学习              4:专项答题
+                #  5:每周答题            6:每日答题              7:分享
+                #  8:收藏                9:登录               1002:文章时长
+                #  10:订阅            1003:视听学习时长         11:发表观点
+                #  1004:连续学习达标    12:挑战答题             13:参加调查问卷活动
+                #  14:本地频道          15:强国运动           2001:系统补发
+                #  10001:争上游答题   2002:积分优化           2003:违规扣减
+                #  10004:双人对战
                 if state.rule_id==1 or state.rule_id==1002:
                     self.process_news()
                 elif state.rule_id==2 or state.rule_id==1003:
