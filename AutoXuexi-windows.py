@@ -65,18 +65,18 @@ def load_config(conf_name:str = "config.json"):
         "allow_upload":True,
         "browser_exec":"",
         "driver_exec":"",
+        "lang":"zh-cn",
         "ui":default_ui_conf}
     if os.path.exists(conf_name)==True:
         with open(file=conf_name,mode="r",encoding="utf-8") as conf_reader:
             conf=json.loads(conf_reader.read())
-        for key in ["enable_daily_test","enable_special_test","enable_weekly_test",
+        if ["enable_daily_test","enable_special_test","enable_weekly_test",
                     "qr_login","is_debug","timeout","record_days","browser_type","allow_upload",
-                    "browser_exec","driver_exec","enable_gui","lang"]:
-            if key in conf.keys()==False:
-                with open(file=conf_name,mode="w",encoding="utf-8") as conf_creater:
-                    conf_creater.write(json.dumps(obj=default_conf,sort_keys=True,indent=4))
-                logger.error("加载配置文件失败，已恢复至默认设置")
-                load_config()
+                    "browser_exec","driver_exec","enable_gui","lang"] in conf.keys() ==False:
+            with open(file=conf_name,mode="w",encoding="utf-8") as conf_creater:
+                conf_creater.write(json.dumps(obj=default_conf,sort_keys=True,indent=4))
+            logger.error("加载配置文件失败，已恢复至默认设置")
+            return default_conf
         else:
             logger.info("加载配置文件成功")
             return conf
@@ -84,7 +84,7 @@ def load_config(conf_name:str = "config.json"):
         with open(file=conf_name,mode="w",encoding="utf-8") as conf_creater:
             conf_creater.write(json.dumps(obj=default_conf,sort_keys=True,indent=4))
         logger.error("配置文件不存在，已创建默认配置")
-        load_config()
+        return default_conf
 def get_edge_driver(version="87.0.664.52"):
     if os.path.exists("edge_driver.zip")==False:
         logger.debug("正在从网络获取文件")
