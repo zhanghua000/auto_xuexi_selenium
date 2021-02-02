@@ -78,7 +78,7 @@ def load_config(conf_name:str = "config.json"):
         "timeout":600,
         "record_days":7,
         "browser_type":"edge_chromium",
-        "allow_upload":True,
+        "allow_upload":False,
         "browser_exec":"",
         "driver_exec":"",
         "lang":"zh-cn",
