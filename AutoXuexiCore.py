@@ -9,7 +9,6 @@ import qrcode
 import time
 import pprint
 import random
-import ipfshttpclient
 from PIL import Image
 from fuzzywuzzy import fuzz
 from Crypto.Cipher import AES
@@ -753,7 +752,8 @@ class XuexiProcessor:
             self.thread_logger.debug("状态：%s" %state_status)
             if state_status==True:
                 self.thread_logger.info("%s 已完成，正在跳过处理" %state.name)
-            else:            
+            else:
+                self.thread_logger.debug("当前项目ruleID:%s" %state.rule_id)
                 #  1:阅读文章            2:视听学习              4:专项答题
                 #  5:每周答题            6:每日答题              7:分享
                 #  8:收藏                9:登录               1002:文章时长
@@ -784,7 +784,8 @@ class XuexiProcessor:
         self.close_driver()
     def upload_database(self):
         # 找到或制造一个API
-        #client=ipfshttpclient.connect("/ip4/127.0.0.1/tcp/25001")
-        pass
+        conn=sqlite3.connect("database.db")
+        cur=conn.cursor()
+        conn.close()
     def exec_command(self,cmd:str):
         pass

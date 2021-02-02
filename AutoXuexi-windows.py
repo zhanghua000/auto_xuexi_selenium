@@ -76,12 +76,13 @@ def load_config(conf_name:str = "config.json"):
         "is_debug":False,
         "edge_version":"88.0.705.50",
         "timeout":600,
-        "record_days":3,
+        "record_days":7,
         "browser_type":"edge_chromium",
         "allow_upload":True,
         "browser_exec":"",
         "driver_exec":"",
         "lang":"zh-cn",
+        "rqlite_id":"",
         "ui":default_ui_conf}
     if os.path.exists(conf_name)==True:
         with open(file=conf_name,mode="r",encoding="utf-8") as conf_reader:
