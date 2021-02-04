@@ -75,6 +75,7 @@ def load_config(conf_name:str = "config.json"):
         "browser_exec":"",
         "driver_exec":"",
         "lang":"zh-cn",
+        "proxy_bat":"",
         "ui":default_ui_conf}
     if os.path.exists(conf_name)==True:
         with open(file=conf_name,mode="r",encoding="utf-8") as conf_reader:
@@ -148,6 +149,7 @@ if __name__=="__main__":
     enable_gui=bool(conf["enable_gui"])
     ui_conf=dict(conf["ui"])
     lang=str(conf["lang"])
+    proxy_bat=str(conf["proxy_bat"])
     if enable_gui==False:
         logger.debug("已禁用图形界面")
         logger.info("正在开始处理项目")
@@ -156,7 +158,8 @@ if __name__=="__main__":
                                 timeout=timeout,record_days=record_days,browser_type=browser_type,
                                 qr_login=qr_login,enable_special_test=enable_special_test,
                                 enable_weekly_test=enable_weekly_test,enable_daily_test=enable_daily_test,
-                                browser_exec=browser_exec,driver_exec=driver_exec,enable_gui=enable_gui)
+                                browser_exec=browser_exec,driver_exec=driver_exec,enable_gui=enable_gui,
+                                proxy_bat=proxy_bat)
         processor.start_process()
         mins,secs=divmod(int(time.time()-start_time),60)
         hours,mins=divmod(mins,60)
@@ -174,7 +177,8 @@ if __name__=="__main__":
             "browser_type":browser_type,
             "allow_upload":allow_upload,
             "browser_exec":browser_exec,
-            "driver_exec":driver_exec}
+            "driver_exec":driver_exec,
+            "proxy_bat":proxy_bat}
         if current_conf["browser_type"]=="edge_chromium":
             current_conf["edge_version"]=edge_version
         if current_conf!=conf:

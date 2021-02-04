@@ -13,6 +13,7 @@ from PIL import Image
 from fuzzywuzzy import fuzz
 from Crypto.Cipher import AES
 from pyzbar.pyzbar import decode
+from browsermobproxy import Server
 from requests.sessions import Session
 from selenium.webdriver import Chrome
 from selenium.webdriver import Firefox
@@ -20,6 +21,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver import ChromeOptions
 from selenium.webdriver import FirefoxOptions
 from msedge.selenium_tools import Edge, EdgeOptions
+from selenium.webdriver.firefox.firefox_profile import FirefoxProfile
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions
 from selenium.common.exceptions import NoSuchElementException, StaleElementReferenceException, TimeoutException
@@ -88,7 +90,7 @@ class XuexiStateDetail:
                 else:
                     self.is_finished=False
 class XuexiProcessor:
-    def __init__(self,is_debug:bool = True,timeout:int = 600,record_days:int = 3,
+    def __init__(self,proxy_bat:str,is_debug:bool = True,timeout:int = 600,record_days:int = 3,
                  browser_type:str = "edge_chromium",qr_login:bool = True,
                  enable_special_test:bool = True,enable_weekly_test:bool = True,
                  enable_daily_test:bool = True,browser_exec:str = None,
@@ -118,6 +120,11 @@ class XuexiProcessor:
         file_handler=logging.FileHandler(filename="thread.log",mode="w",encoding="utf-8")
         file_handler.setFormatter(formatter)
         self.thread_logger.addHandler(file_handler)
+        if proxy_bat=="":
+            self.server=Server()
+        else:
+            self.server=Server(path=proxy_bat)
+        self.thread_logger.debug("代理执行文件位置：%s" %proxy_bat)
         if self.enable_gui==False or is_debug==True:
             stream_handler=logging.StreamHandler(stream=sys.stdout)
             stream_handler.setFormatter(formatter)
@@ -188,6 +195,8 @@ class XuexiProcessor:
         if os.path.exists("video.mp4")==True:
             os.remove("video.mp4")
         self.browser_driver.close()
+        self.thread_logger.debug("正在停止代理服务器")
+        self.server.stop()
     def update_requests_cookies_with_selenium(self):
         cookies=self.browser_driver.get_cookies()
         for cookie in cookies:
@@ -506,15 +515,21 @@ class XuexiProcessor:
                             input_element.send_keys(str(answer_in_db))
                         elif len(answers_in_db)==0:
                             self.thread_logger.error("在数据库中搜索答案失败")
-                            video=WebDriverWait(driver=self.browser_driver,timeout=5).until(expected_conditions.visibility_of_element_located((By.ID,"video")))
-                            self.update_requests_cookies_with_selenium()
-                            video_url=video.get_attribute("src")
-                            if video_url.startswith("http")==False:
-                                self.process_encrypted_video()
+                            try:
+                                video=WebDriverWait(driver=self.browser_driver,timeout=5).until(expected_conditions.visibility_of_element_located((By.ID,"video")))
+                            except TimeoutException:
+                                answer_overwrite=input("答案需要手动输入：")
                             else:
-                                with open(file="video.mp4",mode="wb") as video_downloader:
-                                    video_downloader.write(self.request_session.get(video_url,headers={"Referer":"https://pc.xuexi.cn"}).content)
-                            answer_overwrite=input("视频已用 video.mp4 的文件名下载到程序文件夹，答案需要手动输入：")
+                                self.update_requests_cookies_with_selenium()
+                                video_url=video.get_attribute("src")
+                                if video_url.startswith("http")==False and video_url.startswith("blob:")==True:
+                                    self.browser_driver.execute_script("arguments[0].play();",video)
+                                    self.process_encrypted_video(blob_uri=video_url)
+                                    self.browser_driver.execute_script("arguments[0].pause();",video)
+                                elif video_url.startswith("http")==True and video_url.startswith("blob:")==False:
+                                    with open(file="video.mp4",mode="wb") as video_downloader:
+                                        video_downloader.write(self.request_session.get(video_url,headers={"Referer":"https://pc.xuexi.cn"}).content)
+                                answer_overwrite=input("视频已用 video.mp4 的文件名下载到程序文件夹，答案需要手动输入：")
                             input_element.send_keys(answer_overwrite)
                             self.thread_logger.info("正在更新答案数据库")
                             self.update_answer_database(type_of_question="fill_the_blank",question=question_title,answer=answer_overwrite)
@@ -545,15 +560,21 @@ class XuexiProcessor:
                     answers_in_db=self.get_answer(question=question_title,type_of_question="choose")
                     if len(answers_in_db)==0:
                         self.thread_logger.error("数据库中无答案，需要手动查询输入")
-                        video=WebDriverWait(driver=self.browser_driver,timeout=5).until(expected_conditions.visibility_of_element_located((By.ID,"video")))
-                        self.update_requests_cookies_with_selenium()
-                        video_url=video.get_attributes("src")
-                        if video_url.startswith("http")==False:
-                            self.process_encrypted_video()
+                        try:
+                            video=WebDriverWait(driver=self.browser_driver,timeout=5).until(expected_conditions.visibility_of_element_located((By.ID,"video")))
+                        except TimeoutException:
+                            answer_overwrite=input("答案需要手动输入，多选答案请用#分割：")
                         else:
-                            with open(file="video.mp4",mode="wb") as video_writer:
-                                video_writer.write(self.request_session.get(video_url,headers={"Referer":"https://pc.xuexi.cn"}).content)
-                        answer_overwrite=input("视频已用 video.mp4 的文件名下载到程序文件夹，答案需要手动输入，多选答案请用#分割：")
+                            self.update_requests_cookies_with_selenium()
+                            video_url=video.get_attributes("src")
+                            if video_url.startswith("http")==False and video_url.startswith("blob:")==True:
+                                self.browser_driver.execute_script("arguments[0].play();",video)
+                                self.process_encrypted_video(blob_uri=video_url)
+                                self.browser_driver.execute_script("arguments[0].pause();",video)
+                            elif video_url.startswith("http")==True and video_url.startswith("blob:")==False:
+                                with open(file="video.mp4",mode="wb") as video_writer:
+                                    video_writer.write(self.request_session.get(video_url,headers={"Referer":"https://pc.xuexi.cn"}).content)
+                            answer_overwrite=input("视频已用 video.mp4 的文件名下载到程序文件夹，答案需要手动输入，多选答案请用#分割：")
                         answers_=answer_overwrite.split("#")
                         self.thread_logger.info("正在更新答案数据库")
                         self.update_answer_database(type_of_question="choose",question=question_title,answer=answer_overwrite)
@@ -617,16 +638,19 @@ class XuexiProcessor:
             state.update_self_finish_status(session=self.request_session)
             if state.rule_id==rule_id:
                 return state.is_finished
-    def process_encrypted_video(self):
+    def process_encrypted_video(self,blob_uri:str):
         self.update_requests_cookies_with_selenium()
         header_bak=self.request_session.headers["Referer"]
         self.request_session.headers.update({"Referer":"https://pc.xuexi.cn"})
+        for entry in self.proxy.har["log"]["entries"]:
+            if entry["request"]["url"].endswith(".m3u8"):
+                list_url=entry["request"]["url"]
+                break
+        string1=list_url.split("/")[-2]
+        string2=list_url.split("/")[-1].replace(".m3u8","")
         # get .m3u8 list
-        # TODO make sure how to get these strings
-        string0="1005"
-        string1="60028359967172198502011005"
-        string2="8d5626d1106640a884ea1a75b84d25f2-2"
-        list_text=self.request_session.get("https://boot-video.xuexi.cn/video/%s/p/%s/%s.m3u8" %(string0,string1,string2)).text
+        self.thread_logger.debug("获得的播放列表地址：%s" %list_url)
+        list_text=self.request_session.get(list_url).text
         # get key
         try:
             keys=re.findall(pattern='URI="(.*)"',string=re.findall(pattern='#EXT-X-KEY:(.*)\n',string=list_text)[0])[0]
@@ -635,7 +659,7 @@ class XuexiProcessor:
             key_content=""
             cryptor=None
         else:
-            key_content=self.request_session.get("https://boot-video.xuexi.cn/video/%s/p/%s/%s" %(string0,string1,keys)).content
+            key_content=self.request_session.get("https://boot-video.xuexi.cn/video/1005/p/%s/%s" %(string1,keys)).content
             cryptor=AES.new(key=key_content,mode=AES.MODE_CBC,iv=key_content)
         # get .ts and combine
         tslist=re.findall(pattern='EXTINF:(.*),\n(.*)\n#',string=list_text)
@@ -645,9 +669,9 @@ class XuexiProcessor:
         for ts in tss:
             with open(file="video.mp4",mode="ab") as video_part_downloader:
                 if key_content!="":
-                    content=cryptor.decrypt(self.request_session.get("https://boot-video.xuexi.cn/video/%s/p/%s/%s" %(string0,string1,ts)).content)
+                    content=cryptor.decrypt(self.request_session.get("https://boot-video.xuexi.cn/video/1005/p/%s/%s" %(string1,ts)).content)
                 else:
-                    content=self.request_session.get("https://boot-video.xuexi.cn/video/%s/p/%s/%s" %(string0,string1,ts)).content
+                    content=self.request_session.get("https://boot-video.xuexi.cn/video/1005/p/%s/%s" %(string1,ts)).content
                 video_part_downloader.write(content)
         self.request_session.headers.update({"Referer":header_bak})
     def update_read_database(self,url:str,read_time:float):
@@ -700,6 +724,9 @@ class XuexiProcessor:
         conn.close()
     def start_process(self):
         self.thread_logger.debug("正在开始处理")
+        self.thread_logger.debug("正在启动代理")
+        self.server.start()
+        self.proxy=self.server.create_proxy()
         if "edge" in self.browser_type: # edge_chromium edge_legacy
             edge_options=EdgeOptions()
             if self.browser_exec!="":
@@ -710,6 +737,9 @@ class XuexiProcessor:
                 edge_options.add_argument("headless")
             if self.browser_type=="edge_chromium":
                 edge_options.use_chromium = True
+                edge_options.add_argument("--proxy-server=%s" %self.proxy.proxy)
+                edge_options.add_argument("--ignore-certificate-errors")
+                edge_options.add_argument("--ignore-urlfetcher-cert-requests")
             self.browser_driver=Edge(executable_path=self.driver_exec,options=edge_options)
             self.thread_logger.info("已初始化 Edge 浏览器驱动")
         elif self.browser_type=="chrome":
@@ -720,15 +750,20 @@ class XuexiProcessor:
                 self.driver_exec="chromedriver"
             if self.is_debug==False:
                 chrome_options.add_argument("headless")
+            chrome_options.add_argument("--proxy-server=%s" %self.proxy.proxy)
+            chrome_options.add_argument("--ignore-certificate-errors")
+            chrome_options.add_argument("--ignore-urlfetcher-cert-requests")
             self.browser_driver=Chrome(executable_path=self.driver_exec,options=chrome_options)
             self.thread_logger.info("已初始化 Chrome 浏览器驱动")
         elif self.browser_type=="firefox":
             firefox_options=FirefoxOptions()
+            firefox_profile=FirefoxProfile()
             if self.driver_exec=="":
                 self.driver_exec="geckodriver"
             if self.is_debug==False:
                 firefox_options.add_argument("-headless")
-            self.browser_driver=Firefox(firefox_binary=self.browser_exec,executable_path=self.driver_exec,options=firefox_options)
+            firefox_profile.set_proxy(self.proxy.selenium_proxy())
+            self.browser_driver=Firefox(firefox_binary=self.browser_exec,executable_path=self.driver_exec,options=firefox_options,firefox_profile=firefox_profile)
             self.thread_logger.info("已初始化 Firefox 浏览器驱动")
         else:
             self.thread_logger.error("设置中使用了不支持的浏览器 %s" %self.browser_type)

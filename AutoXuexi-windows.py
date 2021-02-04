@@ -82,7 +82,7 @@ def load_config(conf_name:str = "config.json"):
         "browser_exec":"",
         "driver_exec":"",
         "lang":"zh-cn",
-        "rqlite_id":"",
+        "proxy_bat":"browsermob-proxy\\bin\\browsermob-proxy.bat",
         "ui":default_ui_conf}
     if os.path.exists(conf_name)==True:
         with open(file=conf_name,mode="r",encoding="utf-8") as conf_reader:
@@ -135,6 +135,27 @@ def get_edge_version():
         re_res=re.search(r"^\d*.\d*.\d*.\d*$",dir)
         if re_res!=None:
             return re_res.group()
+def get_browsermob_proxy():
+    if os.path.exists("browsermob-proxy.zip")==False:
+        git_mirror="https://hub.fastgit.org"
+        release_page=requests.get("%s/lightbody/browsermob-proxy/releases/latest" %git_mirror).url
+        version=release_page.split("/")[-1]
+        git_mirror="https://download.fastgit.org"
+        with open(file="browsermob-proxy.zip",mode="wb") as downloader:
+            try:
+                down=requests.get("%s/lightbody/browsermob-proxy/releases/download/%s/%s-bin.zip" %(git_mirror,version,version),stream=True)
+            except requests.exceptions.ConnectionError:
+                logger.error("下载失败，你可以到%s手动下载并以 browsermob-proxy.zip 的名字保存在程序文件夹下，重启程序后将开始解压缩" %down.url)
+            else:
+                size=float(down.headers["Content-Length"])/1024
+                for data in tqdm.tqdm(iterable=down.iter_content(1024),total=size,unit="KiB",desc="下载进度",unit_scale=True):
+                    downloader.write(data)
+    else:
+        logger.info("已找到下载文件，开始解压缩")
+    with zipfile.ZipFile(file="browsermob-proxy.zip",mode="r") as extracter:
+        extracter.extract(version)
+    os.rename(version,"browsermob-proxy")
+    os.remove("browsermob-proxy.zip")
 if __name__=="__main__":
     conf=load_config()
     enable_daily_test=bool(conf["enable_daily_test"])
@@ -152,6 +173,7 @@ if __name__=="__main__":
     enable_gui=bool(conf["enable_gui"])
     ui_conf=dict(conf["ui"])
     lang=str(conf["lang"])
+    proxy_bat=str(conf["proxy_bat"])
     if is_debug==True:
         logger.setLevel(logging.DEBUG)
     else:
@@ -169,6 +191,9 @@ if __name__=="__main__":
             logger.info("Edge浏览器驱动下载完成")
         else:
             logger.info("Edge驱动版本正常")
+    if os.path.exists("browsermob-proxy")==False:
+        logger.info("未检测到代理程序，正在下载")
+        get_browsermob_proxy()
     if enable_gui==False:
         logger.debug("已禁用图形界面")
         logger.info("正在开始处理项目")
@@ -178,7 +203,7 @@ if __name__=="__main__":
                                 qr_login=qr_login,enable_special_test=enable_special_test,
                                 enable_weekly_test=enable_weekly_test,enable_daily_test=enable_daily_test,
                                 browser_exec=browser_exec,driver_exec=driver_exec,enable_gui=enable_gui,
-                                gui_show_pic_signal=None,scan_signal=None)
+                                gui_show_pic_signal=None,scan_signal=None,proxy_bat=proxy_bat)
         processor.start_process()
         mins,secs=divmod(int(time.time()-start_time),60)
         hours,mins=divmod(mins,60)
@@ -197,7 +222,8 @@ if __name__=="__main__":
             "allow_upload":allow_upload,
             "browser_exec":browser_exec,
             "driver_exec":driver_exec,
-            "ui":ui_conf}
+            "ui":ui_conf,
+            "proxy_bat":proxy_bat}
         if current_conf["browser_type"]=="edge_chromium":
             current_conf["edge_version"]=get_edge_version()
         if current_conf!=conf:
