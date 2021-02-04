@@ -8,3 +8,4 @@ pycryptodome
 fuzzywuzzy[speedup]
 QtAwesome
 PyQt6
+browsermob-proxy

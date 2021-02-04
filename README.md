@@ -9,7 +9,8 @@
 使用selenium自动学习一些人生的经验  
 
 ## 依赖
-###### 注意：Windows应该已经实现自动初始化Edge Chromium的驱动以及browsermob-proxy的下载工作并启用Github的镜像地址以加速下载
+
+注意：Windows应该已经实现自动初始化Edge Chromium的驱动以及browsermob-proxy的下载工作并启用Github的镜像地址以加速下载
 
 - [browsermob-proxy](https://github.com/lightbody/browsermob-proxy)
 - Edge Chromium/ Edge Legacy/ Chrome /Chromium /Firefox
