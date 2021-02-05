@@ -21,9 +21,10 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver import ChromeOptions
 from selenium.webdriver import FirefoxOptions
 from msedge.selenium_tools import Edge, EdgeOptions
-from selenium.webdriver.firefox.firefox_profile import FirefoxProfile
+from browsermobproxy.exceptions import ProxyServerError
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions
+from selenium.webdriver.firefox.firefox_profile import FirefoxProfile
 from selenium.common.exceptions import NoSuchElementException, StaleElementReferenceException, TimeoutException
 os.chdir(os.path.split(os.path.realpath(__file__))[0])
 class XuexiItem:
@@ -95,7 +96,7 @@ class XuexiProcessor:
                  enable_special_test:bool = True,enable_weekly_test:bool = True,
                  enable_daily_test:bool = True,browser_exec:str = None,
                  driver_exec:str = None,enable_gui:bool = False,gui_show_pic_signal = None,
-                 scan_signal = None,timer = None):
+                 scan_signal = None,timer = None,proxy_port:int = 8080):
         self.browser_type=browser_type
         self.driver_exec=driver_exec
         self.browser_exec=browser_exec
@@ -120,10 +121,15 @@ class XuexiProcessor:
         file_handler=logging.FileHandler(filename="thread.log",mode="w",encoding="utf-8")
         file_handler.setFormatter(formatter)
         self.thread_logger.addHandler(file_handler)
-        if proxy_bat=="":
+        self.thread_logger.debug("正在以 %d 端口启动执行文件为 %s 的代理" %(proxy_port,proxy_bat))
+        if proxy_bat=="" and proxy_port==8080:
             self.server=Server()
-        else:
+        elif proxy_bat=="":
+            self.server=Server(options={"port":proxy_port})
+        elif proxy_port==8080:
             self.server=Server(path=proxy_bat)
+        else:
+            self.server=Server(path=proxy_bat,options={"port":proxy_port})
         self.thread_logger.debug("代理执行文件位置：%s" %proxy_bat)
         if self.enable_gui==False or is_debug==True:
             stream_handler=logging.StreamHandler(stream=sys.stdout)
@@ -194,9 +200,9 @@ class XuexiProcessor:
             os.remove("qr.png")
         if os.path.exists("video.mp4")==True:
             os.remove("video.mp4")
-        self.browser_driver.close()
         self.thread_logger.debug("正在停止代理服务器")
         self.server.stop()
+        self.browser_driver.close()
     def update_requests_cookies_with_selenium(self):
         cookies=self.browser_driver.get_cookies()
         for cookie in cookies:
@@ -724,8 +730,11 @@ class XuexiProcessor:
         conn.close()
     def start_process(self):
         self.thread_logger.debug("正在开始处理")
-        self.thread_logger.debug("正在启动代理")
-        self.server.start()
+        try:
+            self.server.start()
+        except ProxyServerError:
+            self.thread_logger.error("启动代理服务器失败，查看程序目录下的 server.log 以检查问题原因")
+            raise RuntimeError("代理服务器启动出错")
         self.proxy=self.server.create_proxy()
         if "edge" in self.browser_type: # edge_chromium edge_legacy
             edge_options=EdgeOptions()

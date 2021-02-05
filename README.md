@@ -8,11 +8,15 @@
 
 使用selenium自动学习一些人生的经验  
 
+## 注意：  
+
+1. Windows应该已经实现自动初始化Edge Chromium的驱动以及browsermob-proxy的下载工作并启用Github的镜像地址以加速下载
+2. 请保证计算机的8080以及8081端口处于可用状态，高版本Windows 10在打开Hyper-V的情况下上述端口将被占用作为系统保留端口，取消方法参考[此处](https://www.jianshu.com/p/7412ff422db6)
+
 ## 依赖
 
-注意：Windows应该已经实现自动初始化Edge Chromium的驱动以及browsermob-proxy的下载工作并启用Github的镜像地址以加速下载
-
 - [browsermob-proxy](https://github.com/lightbody/browsermob-proxy)
+- [Java Runtime Enviromnent](https://www.java.com/) (运行browsermob-proxy)
 - Edge Chromium/ Edge Legacy/ Chrome /Chromium /Firefox
 - `pip install -r requirements-${system}.txt`
 
