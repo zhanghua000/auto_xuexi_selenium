@@ -275,6 +275,16 @@ class SettingWindow(QDialog):
         theme_opacity.addWidget(theme_opacity_label)
         theme_opacity.addWidget(self.theme_opacity_slider)
         tab_theme_layout.addLayout(theme_opacity,0,0)
+        proxy_bat=QHBoxLayout()
+        proxy_bat_label=QLabel("代理服务器执行文件：")
+        proxy_bat_label.setStyleSheet(settings["label"])
+        self.proxy_bat_edit=QLineEdit()
+        self.proxy_bat_edit.setText(conf["proxy_bat"])
+        self.proxy_bat_edit.setStyleSheet(settings["text_edit"])
+        self.proxy_bat_edit.home(False)
+        proxy_bat.addWidget(proxy_bat_label)
+        proxy_bat.addWidget(self.proxy_bat_edit)
+        tab_main_layout.addLayout(proxy_bat,2,3)
         theme_close_button_style=QVBoxLayout()
         theme_close_button_style_label=QLabel("关闭按钮的QSS样式：")
         theme_close_button_style_label.setStyleSheet(settings["label"])
@@ -549,6 +559,7 @@ class SettingWindow(QDialog):
                 "maximum_button_style":self.theme_maximum_button_style_edit.displayText(),
                 "minimum_button_style":self.theme_minimum_button_style_edit.displayText(),
                 "opacity":float(self.theme_opacity_slider.value()/10),
+                "proxy_bat":self.proxy_bat_edit.displayText(),
                 "qr_style":self.theme_qr_style_edit.displayText(),
                 "qr_title_style":self.theme_qr_title_style_edit.displayText(),
                 "settings":{
@@ -620,6 +631,7 @@ class Work(QObject):
         self.qr_login=conf["qr_login"]
         self.record_days=conf["record_days"]
         self.timeout=conf["timeout"]
+        self.proxy_bat=conf["proxy_bat"]
         if type(logger)==logging.Logger:
             self.logger=logger
     def start_process(self):
@@ -628,7 +640,7 @@ class Work(QObject):
                                         browser_type=self.browser_type,qr_login=self.qr_login,enable_special_test=self.enable_special_test,
                                         enable_weekly_test=self.enable_weekly_test,enable_daily_test=self.enable_daily_test,
                                         browser_exec=self.browser_exec,driver_exec=self.driver_exec,enable_gui=self.enable_gui,
-                                        gui_show_pic_signal=self.signal,scan_signal=self.scan_signal,timer=self.timer)
+                                        gui_show_pic_signal=self.signal,scan_signal=self.scan_signal,timer=self.timer,proxy_bat=self.proxy_bat)
         self.logger.debug("子线程已初始化工作类")
         self.processor.start_process()
         self.logger.debug("子线程已完成执行")

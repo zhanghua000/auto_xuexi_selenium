@@ -9,3 +9,4 @@ requirements.txt
 *.zip
 .vs
 browsermob-proxy
+PyQtEnv
