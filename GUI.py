@@ -627,14 +627,14 @@ class SettingWindow(QDialog):
             widgets.append(self.theme_title_colors_table.item(i).text())
         return widgets
 class QLogger(logging.Handler):
-    def __init__(self,parent):
+    def __init__(self,parent,update_log_signal):
         super().__init__()
         self.widget=QPlainTextEdit(parent)
         self.widget.setReadOnly(True)
+        self.update_log_signal=update_log_signal
     def emit(self,record):
         msg=self.format(record)
-        time.sleep(0.1)
-        self.widget.appendPlainText(msg)
+        self.update_log_signal.emit(msg)
     def scroll_widget_to_bottom(self):
         self.widget.verticalScrollBar().setSliderPosition(self.widget.verticalScrollBar().maximum())
 class Work(QObject):
@@ -643,7 +643,7 @@ class Work(QObject):
     can_quit=pyqtSignal()
     need_input_signal=pyqtSignal(str)
     emit_signal=pyqtSignal(str)
-    def __init__(self,conf:dict={},logger = None):
+    def __init__(self,parent,conf:dict={},logger = None):
         super().__init__()
         self.timer=QTimer()
         if conf=={}:
@@ -683,6 +683,7 @@ class Work(QObject):
         self.logger.debug("子线程已完成执行")
         self.can_quit.emit()
 class UI(QWidget):
+    update_log_signal=pyqtSignal(str)
     def __init__(self,ui_conf:dict,parent=None):
         super().__init__(parent)
         self.ui_conf=ui_conf
@@ -723,16 +724,17 @@ class UI(QWidget):
         self.minimum_button.setStyleSheet(ui_conf["minimum_button_style"])
         self.minimum_button.setToolTip("最小化")
         self.minimum_button.setFixedSize(30,15)
-        self.qlogger=QLogger(self)
+        self.qlogger=QLogger(parent=self,update_log_signal=self.update_log_signal)
         self.qlogger.setFormatter(logging.Formatter(fmt="%(asctime)s-%(levelname)s-%(message)s",datefmt="%Y-%m-%d %H:%M:%S"))
         self.logger=logging.getLogger("thread")
         self.logger.addHandler(self.qlogger)
+        self.update_log_signal.connect(self.qlogger.widget.appendPlainText)
         self.qlogger.widget.setStyleSheet(ui_conf["log_panel_style"])
         self.qlogger.widget.textChanged.connect(self.qlogger.scroll_widget_to_bottom)
         self.ui_layout.addWidget(self.qlogger.widget,1,1)
         self.setStyleSheet(ui_conf["ui"])
         self.working_thread=QThread()
-        self.work=Work(logger=self.logger)
+        self.work=Work(logger=self.logger,parent=self)
         self.work.signal.connect(self.show_qr)
         self.work.scan_signal.connect(self.close_qr)
         self.work.can_quit.connect(self.working_thread.quit)
