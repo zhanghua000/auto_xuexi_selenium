@@ -11,6 +11,38 @@ from PyQt6.QtGui import QIntValidator, QMouseEvent, QPixmap
 from PyQt6.QtCore import QObject, QThread, Qt, pyqtSignal, QTimer
 from PyQt6.QtWidgets import QCheckBox, QDialog, QFileDialog, QHBoxLayout, QListWidget, QTabWidget, QWidget, QGridLayout, QVBoxLayout, QPushButton, QLabel, QPlainTextEdit, QLineEdit, QSlider
 os.chdir(os.path.split(os.path.realpath(__file__))[0])
+class InputWindow(QDialog):
+    def __init__(self,data:str,emit_signal:pyqtSignal):
+        super().__init__()
+        self.question=QLabel("问题：%s" %data)
+        self.question.setStyleSheet("QLabel{border:none;border-radius:5px;background:transparent;}")
+        self.answer=QLabel("答案：")
+        self.answer.setStyleSheet("QLabel{border:none;border-radius:5px;background:transparent;}")
+        self.answer_input=QLineEdit()
+        self.answer_input.setStyleSheet("QLineEdit{border:none;border-radius:5px;background:transparent;}")
+        self.ok=QPushButton("确认")
+        self.ok.setStyleSheet("QPushButton{border:none;border-radius:5px;background:transparent;}")
+        self.cancel=QPushButton("取消")
+        self.cancel.setStyleSheet("QPushButton{border:none;border-radius:5px;background:transparent;}")
+        self.layout_=QGridLayout()
+        self.emit_signal=emit_signal
+        self.setWindowFlag(Qt.WindowFlags.WindowStaysOnTopHint)
+        self.setWindowModality(Qt.WindowModality.WindowModal)
+        buttons=QHBoxLayout()
+        buttons.addWidget(self.ok)
+        buttons.addWidget(self.cancel)
+        answers=QHBoxLayout()
+        answers.addWidget(self.answer)
+        answers.addWidget(self.answer_input)
+        self.layout_.addWidget(self.question,0,0)
+        self.layout_.addLayout(answers,1,0)
+        self.layout_.addLayout(buttons,2,2)
+        self.setLayout(self.layout_)
+        self.cancel.clicked.connect(self.close)
+        self.ok.clicked.connect(self.ok_handle)
+    def ok_handle(self):
+        self.emit_signal.emit(self.answer_input.displayText())
+        self.close()
 class CustomListWidget(QListWidget):
     def __init__(self):
         super(CustomListWidget,self).__init__()
@@ -601,6 +633,7 @@ class QLogger(logging.Handler):
         self.widget.setReadOnly(True)
     def emit(self,record):
         msg=self.format(record)
+        time.sleep(0.1)
         self.widget.appendPlainText(msg)
     def scroll_widget_to_bottom(self):
         self.widget.verticalScrollBar().setSliderPosition(self.widget.verticalScrollBar().maximum())
@@ -608,6 +641,8 @@ class Work(QObject):
     signal=pyqtSignal(bytes)
     scan_signal=pyqtSignal(bool)
     can_quit=pyqtSignal()
+    need_input_signal=pyqtSignal(str)
+    emit_signal=pyqtSignal(str)
     def __init__(self,conf:dict={},logger = None):
         super().__init__()
         self.timer=QTimer()
@@ -640,8 +675,10 @@ class Work(QObject):
                                         browser_type=self.browser_type,qr_login=self.qr_login,enable_special_test=self.enable_special_test,
                                         enable_weekly_test=self.enable_weekly_test,enable_daily_test=self.enable_daily_test,
                                         browser_exec=self.browser_exec,driver_exec=self.driver_exec,enable_gui=self.enable_gui,
-                                        gui_show_pic_signal=self.signal,scan_signal=self.scan_signal,timer=self.timer,proxy_bat=self.proxy_bat)
+                                        gui_show_pic_signal=self.signal,scan_signal=self.scan_signal,timer=self.timer,proxy_bat=self.proxy_bat,
+                                        need_input_signal=self.need_input_signal)
         self.logger.debug("子线程已初始化工作类")
+        self.emit_signal.connect(self.processor.get_answers)
         self.processor.start_process()
         self.logger.debug("子线程已完成执行")
         self.can_quit.emit()
@@ -699,6 +736,7 @@ class UI(QWidget):
         self.work.signal.connect(self.show_qr)
         self.work.scan_signal.connect(self.close_qr)
         self.work.can_quit.connect(self.working_thread.quit)
+        self.work.need_input_signal.connect(self.need_input)
         self.work.moveToThread(self.working_thread)
         self.working_thread.started.connect(self.work.start_process)
         self.working_thread.finished.connect(self.finish_process)
@@ -834,3 +872,6 @@ class UI(QWidget):
         else:
             error_msg_box=ErrorMsgBox(msg="未选择文件",parent=self)
             error_msg_box.exec()
+    def need_input(self,data:str):
+        input_window=InputWindow(data,emit_signal=self.work.emit_signal,parent=self)
+        input_window.exec()

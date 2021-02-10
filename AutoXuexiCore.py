@@ -96,7 +96,8 @@ class XuexiProcessor:
                  enable_special_test:bool = True,enable_weekly_test:bool = True,
                  enable_daily_test:bool = True,browser_exec:str = None,
                  driver_exec:str = None,enable_gui:bool = False,gui_show_pic_signal = None,
-                 scan_signal = None,timer = None,proxy_port:int = 8080):
+                 scan_signal = None,timer = None,proxy_port:int = 8080,
+                 need_input_signal = None):
         self.browser_type=browser_type
         self.driver_exec=driver_exec
         self.browser_exec=browser_exec
@@ -112,6 +113,7 @@ class XuexiProcessor:
         self.gui_show_pic_signal=gui_show_pic_signal
         self.scan_signal=scan_signal
         self.timer=timer
+        self.need_input_signal=need_input_signal
         self.thread_logger=logging.getLogger("thread")
         if is_debug==True:
             self.thread_logger.setLevel(logging.DEBUG)
@@ -522,9 +524,14 @@ class XuexiProcessor:
                         elif len(answers_in_db)==0:
                             self.thread_logger.error("在数据库中搜索答案失败")
                             try:
-                                video=WebDriverWait(driver=self.browser_driver,timeout=5).until(expected_conditions.visibility_of_element_located((By.ID,"video")))
+                                video=WebDriverWait(driver=self.browser_driver,timeout=5).until(expected_conditions.visibility_of_element_located((By.TAG_NAME,"video")))
                             except TimeoutException:
-                                answer_overwrite=input("答案需要手动输入：")
+                                if self.enable_gui==False:
+                                    answer_overwrite=input("答案需要手动输入：")
+                                else:
+                                    # GUI Option
+                                    self.need_input_signal.emit(question_title)
+                                    answer_overwrite=self.answers_from_gui
                             else:
                                 self.update_requests_cookies_with_selenium()
                                 video_url=video.get_attribute("src")
@@ -535,7 +542,12 @@ class XuexiProcessor:
                                 elif video_url.startswith("http")==True and video_url.startswith("blob:")==False:
                                     with open(file="video.mp4",mode="wb") as video_downloader:
                                         video_downloader.write(self.request_session.get(video_url,headers={"Referer":"https://pc.xuexi.cn"}).content)
-                                answer_overwrite=input("视频已用 video.mp4 的文件名下载到程序文件夹，答案需要手动输入：")
+                                if self.enable_gui==False:
+                                    answer_overwrite=input("视频已用 video.mp4 的文件名下载到程序文件夹，答案需要手动输入：")
+                                else:
+                                    # GUI Option
+                                    self.need_input_signal.emit(question_title)
+                                    answer_overwrite=self.answers_from_gui
                             input_element.send_keys(answer_overwrite)
                             self.thread_logger.info("正在更新答案数据库")
                             self.update_answer_database(type_of_question="fill_the_blank",question=question_title,answer=answer_overwrite)
@@ -543,7 +555,12 @@ class XuexiProcessor:
                         else:
                             self.thread_logger.error("数据库中有重复项目，无法寻找到有效答案")
                             self.thread_logger.debug("找到的答案 %s" %answers_in_db)
-                            answer_overwrite=input("答案需要手动输入：")
+                            if self.enable_gui==False:
+                                answer_overwrite=input("答案需要手动输入：")
+                            else:
+                                # GUI Option
+                                self.need_input_signal.emit(question_title)
+                                answer_overwrite=self.answers_from_gui
                             input_element.send_keys(answer_overwrite)
                     else:
                         answer_tip=answer_tips[input_elements.index(input_element)]
@@ -567,9 +584,14 @@ class XuexiProcessor:
                     if len(answers_in_db)==0:
                         self.thread_logger.error("数据库中无答案，需要手动查询输入")
                         try:
-                            video=WebDriverWait(driver=self.browser_driver,timeout=5).until(expected_conditions.visibility_of_element_located((By.ID,"video")))
+                            video=WebDriverWait(driver=self.browser_driver,timeout=5).until(expected_conditions.visibility_of_element_located((By.TAG_NAME,"video")))
                         except TimeoutException:
-                            answer_overwrite=input("答案需要手动输入，多选答案请用#分割：")
+                            if self.enable_gui==False:
+                                answer_overwrite=input("答案需要手动输入，多选答案请用#分割：")
+                            else:
+                                # GUI Option
+                                self.need_input_signal.emit(question_title)
+                                answer_overwrite=self.answers_from_gui
                         else:
                             self.update_requests_cookies_with_selenium()
                             video_url=video.get_attributes("src")
@@ -580,7 +602,12 @@ class XuexiProcessor:
                             elif video_url.startswith("http")==True and video_url.startswith("blob:")==False:
                                 with open(file="video.mp4",mode="wb") as video_writer:
                                     video_writer.write(self.request_session.get(video_url,headers={"Referer":"https://pc.xuexi.cn"}).content)
-                            answer_overwrite=input("视频已用 video.mp4 的文件名下载到程序文件夹，答案需要手动输入，多选答案请用#分割：")
+                            if self.enable_gui==False:
+                                answer_overwrite=input("视频已用 video.mp4 的文件名下载到程序文件夹，答案需要手动输入，多选答案请用#分割：")
+                            else:
+                                # GUI Option
+                                self.need_input_signal.emit(question_title)
+                                answer_overwrite=self.answers_from_gui
                         answers_=answer_overwrite.split("#")
                         self.thread_logger.info("正在更新答案数据库")
                         self.update_answer_database(type_of_question="choose",question=question_title,answer=answer_overwrite)
@@ -591,13 +618,18 @@ class XuexiProcessor:
                         answers_=str(answer_in_db).split("#")
                     else:
                         self.thread_logger.error("数据库中有重复项目，无法寻找到有效答案")
-                        answer_overwrite=input("答案需要手动输入，多选答案请用#分割：")
+                        if self.enable_gui==False:
+                            answer_overwrite=input("答案需要手动输入，多选答案请用#分割：")
+                        else:
+                            # GUI Options
+                            self.need_input_signal.emit(question_title)
+                            answer_overwrite=self.answers_from_gui
                         answers_=answer_overwrite.split("#")
                 for answer in answers_:
                     self.thread_logger.debug("当前tip的内容：%s" %answer)
                     for answer_input in answer_inputs:
                         self.thread_logger.debug("当前按钮标题：%s" %answer_input.text)
-                        if ((answer in answer_input.text) or ("正确" in answer_input.text and "可以" in answer)) and ("chosen" not in answer_input.get_attribute("class")):
+                        if (self.is_answer_match(answer_text=answer,answer_input_text=answer_input.text)) and ("chosen" not in answer_input.get_attribute("class")):
                             answer_input.click()
                             self.thread_logger.debug("按钮标题与tip匹配完成，已点击按钮")
                         else:
@@ -605,8 +637,87 @@ class XuexiProcessor:
             try:
                 button=WebDriverWait(driver=self.browser_driver,timeout=10).until(expected_conditions.element_to_be_clickable((By.CLASS_NAME,"next-btn")))
             except TimeoutException:
-                button=WebDriverWait(driver=self.browser_driver,timeout=10).until(expected_conditions.element_to_be_clickable((By.CLASS_NAME,"submit-btn")))
-                self.thread_logger.debug("已找到提交按钮")
+                try:
+                    button=WebDriverWait(driver=self.browser_driver,timeout=10).until(expected_conditions.element_to_be_clickable((By.CLASS_NAME,"submit-btn")))
+                except TimeoutException:
+                    # 有tip但无显式答案
+                    spans=self.browser_driver.find_element_by_class_name("q-body").find_elements_by_tag_name("div")
+                    question_title=""
+                    for span in spans:
+                        if span!=spans[-1]:
+                            question_title=question_title+span.text+"_"
+                        else:
+                            question_title=question_title+span.text
+                    try:
+                        q_answers=self.browser_driver.find_element_by_class_name("q-answers")
+                    except NoSuchElementException:
+                        # 填空
+                        need_update_db=False
+                        input_elements=question_element.find_elements_by_class_name("blank")
+                        answer_in_db=self.get_answer(question=question_title,type_of_question="fill_the_blank")
+                        if len(answer_in_db)==1:
+                            answers=answer_in_db[0]
+                        else:
+                            self.thread_logger.error("数据库中无有效答案，需要手动介入")
+                            self.thread_logger.info("问题题目：%s" %question_title)
+                            if self.enable_gui==False:
+                                answers=input("请手动作答，多个填空的答案按顺序用#分割：")
+                            else:
+                                # GUI Option
+                                self.need_input_signal.emit(question_title)
+                                answers=self.answers_from_gui
+                            need_update_db=True
+                        if "#" in answers:
+                            answers_=answers.split("#")
+                            for input_element in input_elements:
+                                for answer in answers_:
+                                    input_element.clear()
+                                    input_element.send_keys(answer)
+                        else:
+                            for input_element in input_elements:
+                                input_element.clear()
+                                input_element.send_keys(answers)
+                        if need_update_db==True:
+                            self.update_answer_database(question=question_title,answer=answers,type_of_question="fill_the_blank")
+                    else:
+                        # 选择
+                        need_update_db=False
+                        answer_elements=q_answers.find_elements_by_class_name("q-answer")
+                        answer_in_db=self.get_answer(question=question_title,type_of_question="choose")
+                        if len(answer_in_db)==1:
+                            answers=answer_in_db[0]
+                        else:
+                            self.thread_logger.error("数据库中无有效答案，需要手动介入")
+                            self.thread_logger.info("问题题目：%s" %question_title)
+                            if self.enable_gui==False:
+                                answers=input("请手动作答，多选题答案按顺序用#分隔：")
+                            else:
+                                # GUI Option
+                                self.need_input_signal.emit(question_title)
+                                answers=self.answers_from_gui
+                            need_update_db=True
+                        if "#" in answers:
+                            answers_=answers.split("#")
+                            for answer_element in answer_elements:
+                                for answer in answers_:
+                                    if self.is_answer_match(answer_input_text=answer_element.text,answer_text=answer) and "chosen" not in answer_element.get_atttributes("class"):
+                                        answer_element.click()
+                        else:
+                            for answer_element in answer_elements:
+                                if self.is_answer_match(answer_input_text=answer_element.text,answer_text=answer) and "chosen" not in answer_element.get_attributes("class"):
+                                    answer_element.click()
+                        if need_update_db==True:
+                            self.update_answer_database(question=question_title,answer=answers,type_of_question="choose")
+                    try:
+                        next_button=WebDriverWait(driver=self.browser_driver,timeout=10).until(expected_conditions.element_to_be_clickable((By.CLASS_NAME,"next_btn")))
+                    except TimeoutException:
+                        try:
+                            next_button=WebDriverWait(driver=self.browser_driver,timeout=10).until(expected_conditions.element_to_be_clickable((By.CLASS_NAME,"submit-btn")))
+                        except TimeoutException:
+                            self.thread_logger.error("题目过于复杂，不支持处理")
+                    next_button.click()
+                else:
+                    self.thread_logger.debug("已找到提交按钮")
             else:
                 self.thread_logger.debug("已找到下一步按钮")
             self.browser_driver.execute_script("arguments[0].scrollIntoView()", button)
@@ -725,58 +836,66 @@ class XuexiProcessor:
     def update_answer_database(self,question:str,answer:str,type_of_question:str):
         conn=sqlite3.connect("database.db")
         cur=conn.cursor()
-        cur.execute("INSERT INTO answers (type,question,answer) VALUES (%s,%s,%s)" %(type_of_question,question,answer))
+        cur.execute("INSERT INTO answers (type,question,answer) VALUES ('%s','%s','%s')" %(type_of_question,question,answer))
         conn.commit()
         conn.close()
+    def init_browser_driver(self):
+    	if "edge" in self.browser_type: # edge_chromium edge_legacy
+    	    edge_options=EdgeOptions()
+    	    if self.browser_exec!="":
+    	        edge_options.binary_location=self.browser_exec
+    	    if self.driver_exec=="":
+    	        self.driver_exec="msedgedriver"
+    	    if self.is_debug==False:
+    	        edge_options.add_argument("headless")
+    	    if self.browser_type=="edge_chromium":
+    	        edge_options.use_chromium = True
+    	        edge_options.add_argument("--proxy-server=%s" %self.proxy.proxy)
+    	        edge_options.add_argument("--ignore-certificate-errors")
+    	        edge_options.add_argument("--ignore-urlfetcher-cert-requests")
+    	    self.browser_driver=Edge(executable_path=self.driver_exec,options=edge_options)
+    	    self.thread_logger.info("已初始化 Edge 浏览器驱动")
+    	elif self.browser_type=="chrome":
+    	    chrome_options=ChromeOptions()
+    	    if self.browser_exec!="":
+    	        chrome_options.binary_location=self.browser_exec
+    	    if self.driver_exec=="":
+    	        self.driver_exec="chromedriver"
+    	    if self.is_debug==False:
+    	        chrome_options.add_argument("headless")
+    	    chrome_options.add_argument("--proxy-server=%s" %self.proxy.proxy)
+    	    chrome_options.add_argument("--ignore-certificate-errors")
+    	    chrome_options.add_argument("--ignore-urlfetcher-cert-requests")
+    	    self.browser_driver=Chrome(executable_path=self.driver_exec,options=chrome_options)
+    	    self.thread_logger.info("已初始化 Chrome 浏览器驱动")
+    	elif self.browser_type=="firefox":
+    	    firefox_options=FirefoxOptions()
+    	    firefox_profile=FirefoxProfile()
+    	    if self.driver_exec=="":
+    	        self.driver_exec="geckodriver"
+    	    if self.is_debug==False:
+    	        firefox_options.add_argument("-headless")
+    	    firefox_profile.set_proxy(self.proxy.selenium_proxy())
+    	    self.browser_driver=Firefox(firefox_binary=self.browser_exec,executable_path=self.driver_exec,options=firefox_options,firefox_profile=firefox_profile)
+    	    self.thread_logger.info("已初始化 Firefox 浏览器驱动")
+    	else:
+    	    self.thread_logger.error("设置中使用了不支持的浏览器 %s" %self.browser_type)
+    	    raise RuntimeError("设置中使用了不支持的浏览器")
+
+    def start_proxy_server(self):
+    	try:
+    	    self.server.start()
+    	except ProxyServerError:
+    	    self.thread_logger.error("启动代理服务器失败，查看程序目录下的 server.log 以检查问题原因")
+    	    raise RuntimeError("代理服务器启动出错")
+    	else:
+    	    self.proxy=self.server.create_proxy()
+    	    self.thread_logger.info("代理服务器启动成功")
+
     def start_process(self):
         self.thread_logger.debug("正在开始处理")
-        try:
-            self.server.start()
-        except ProxyServerError:
-            self.thread_logger.error("启动代理服务器失败，查看程序目录下的 server.log 以检查问题原因")
-            raise RuntimeError("代理服务器启动出错")
-        self.proxy=self.server.create_proxy()
-        if "edge" in self.browser_type: # edge_chromium edge_legacy
-            edge_options=EdgeOptions()
-            if self.browser_exec!="":
-                edge_options.binary_location=self.browser_exec
-            if self.driver_exec=="":
-                self.driver_exec="msedgedriver"
-            if self.is_debug==False:
-                edge_options.add_argument("headless")
-            if self.browser_type=="edge_chromium":
-                edge_options.use_chromium = True
-                edge_options.add_argument("--proxy-server=%s" %self.proxy.proxy)
-                edge_options.add_argument("--ignore-certificate-errors")
-                edge_options.add_argument("--ignore-urlfetcher-cert-requests")
-            self.browser_driver=Edge(executable_path=self.driver_exec,options=edge_options)
-            self.thread_logger.info("已初始化 Edge 浏览器驱动")
-        elif self.browser_type=="chrome":
-            chrome_options=ChromeOptions()
-            if self.browser_exec!="":
-                chrome_options.binary_location=self.browser_exec
-            if self.driver_exec=="":
-                self.driver_exec="chromedriver"
-            if self.is_debug==False:
-                chrome_options.add_argument("headless")
-            chrome_options.add_argument("--proxy-server=%s" %self.proxy.proxy)
-            chrome_options.add_argument("--ignore-certificate-errors")
-            chrome_options.add_argument("--ignore-urlfetcher-cert-requests")
-            self.browser_driver=Chrome(executable_path=self.driver_exec,options=chrome_options)
-            self.thread_logger.info("已初始化 Chrome 浏览器驱动")
-        elif self.browser_type=="firefox":
-            firefox_options=FirefoxOptions()
-            firefox_profile=FirefoxProfile()
-            if self.driver_exec=="":
-                self.driver_exec="geckodriver"
-            if self.is_debug==False:
-                firefox_options.add_argument("-headless")
-            firefox_profile.set_proxy(self.proxy.selenium_proxy())
-            self.browser_driver=Firefox(firefox_binary=self.browser_exec,executable_path=self.driver_exec,options=firefox_options,firefox_profile=firefox_profile)
-            self.thread_logger.info("已初始化 Firefox 浏览器驱动")
-        else:
-            self.thread_logger.error("设置中使用了不支持的浏览器 %s" %self.browser_type)
-            raise RuntimeError("设置中使用了不支持的浏览器")
+        self.start_proxy_server()
+        self.init_browser_driver()
         self.browser_driver.maximize_window()
         self.thread_logger.debug("已最大化浏览器")
         self.request_session=requests.session()
@@ -833,3 +952,13 @@ class XuexiProcessor:
         conn.close()
     def exec_command(self,cmd:str):
         pass
+    def is_answer_match(self,answer_input_text,answer_text):
+        if answer_text in answer_input_text:
+            return True
+        elif "正确" in answer_input_text and "会" in answer_text:
+            return True
+        elif "正确" in answer_input_text and "可以" in answer_text:
+            return True
+        return False
+    def get_answers(self,answers:str):
+        self.answers_from_gui=answers
