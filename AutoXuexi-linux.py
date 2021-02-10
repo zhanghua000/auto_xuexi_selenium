@@ -4,8 +4,8 @@ import sys
 import json
 import time
 import logging
-from GUI import UI
-from PyQt6.QtWidgets import QApplication
+#from GUI_PyQt import show
+from GUI_PySide import show
 from AutoXuexiCore import XuexiProcessor
 os.chdir(os.path.split(os.path.realpath(__file__))[0])
 logger=logging.getLogger("main")
@@ -192,7 +192,4 @@ if __name__=="__main__":
 
     else:
         logger.debug("已启用图形界面")
-        app=QApplication(sys.argv)
-        gui=UI(ui_conf=ui_conf)
-        gui.show()
-        sys.exit(app.exec())
+        show(ui_conf=ui_conf)

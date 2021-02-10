@@ -9,8 +9,8 @@ import logging
 import requests
 import win32api
 import ctypes
-from GUI import UI
-from PyQt6.QtWidgets import QApplication
+#from GUI_PyQt import show
+from GUI_PySide import show
 from AutoXuexiCore import XuexiProcessor
 os.chdir(os.path.split(os.path.realpath(__file__))[0])
 ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("myappid")
@@ -236,7 +236,4 @@ if __name__=="__main__":
         sys.exit(0)
     else:
         logger.debug("已启用图形界面")
-        app=QApplication(sys.argv)
-        gui=UI(ui_conf=ui_conf)
-        gui.show()
-        sys.exit(app.exec())
+        show(ui_conf=ui_conf)
