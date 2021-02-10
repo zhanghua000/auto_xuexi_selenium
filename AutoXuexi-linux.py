@@ -4,8 +4,6 @@ import sys
 import json
 import time
 import logging
-#from GUI_PyQt import show
-from GUI_PySide import show
 from AutoXuexiCore import XuexiProcessor
 os.chdir(os.path.split(os.path.realpath(__file__))[0])
 logger=logging.getLogger("main")
@@ -19,6 +17,7 @@ logger.addHandler(file_handler)
 logger.addHandler(stream_handler)
 def load_config(conf_name:str = "config.json"):
     default_ui_conf={
+        "use_pyqt":True,
         "at_top": True,
         "auto_start": False,
         "close_button_style": "QPushButton{background:#FFE3ED;border-radius:5px;border:none;}QPushButton:hover{background:#EC524B;}",
@@ -150,6 +149,7 @@ if __name__=="__main__":
     ui_conf=dict(conf["ui"])
     lang=str(conf["lang"])
     proxy_bat=str(conf["proxy_bat"])
+    use_pyqt=bool(conf["use_pyqt"])
     if enable_gui==False:
         logger.debug("已禁用图形界面")
         logger.info("正在开始处理项目")
@@ -191,5 +191,9 @@ if __name__=="__main__":
         sys.exit(0)
 
     else:
+        if use_pyqt==True:
+            from GUI_PyQt import show
+        else:
+            from GUI_PySide import show
         logger.debug("已启用图形界面")
         show(ui_conf=ui_conf)

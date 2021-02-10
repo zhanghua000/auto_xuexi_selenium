@@ -43,6 +43,7 @@
 - "enable_gui":启用GUI
 - "enable_special_test":启用专项测验  
 - "enable_weekly_test":启用每周测验  
+- "use_pyqt":是否使用PyQt作为GUI库，否则使用PySide
 - "is_debug":调试模式，打开后日志等级变为DEBUG且控制的浏览器将正常显示 
 - "lang":语言字符串
 - "qr_login":二维码登陆  

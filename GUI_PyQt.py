@@ -319,6 +319,10 @@ class SettingWindow(QDialog):
         proxy_bat.addWidget(proxy_bat_label)
         proxy_bat.addWidget(self.proxy_bat_edit)
         tab_main_layout.addLayout(proxy_bat,2,3)
+        self.use_pyqt=QCheckBox("使用PyQt作为图形库")
+        self.use_pyqt.setChecked(conf["use_pyqt"])
+        self.use_pyqt.setStyleSheet(settings["check_box"])
+        tab_main_layout.addWidget(self.use_pyqt,3,3)
         theme_close_button_style=QVBoxLayout()
         theme_close_button_style_label=QLabel("关闭按钮的QSS样式：")
         theme_close_button_style_label.setStyleSheet(settings["label"])
@@ -581,6 +585,7 @@ class SettingWindow(QDialog):
             "qr_login":self.qr_login.isChecked(),
             "record_days":int(self.record_days_edit.displayText()),
             "timeout":int(self.timeout_edit.displayText()),
+            "use_pyqt":self.use_pyqt.isChecked(),
             "ui":{
                 "at_top":self.ui_at_top.isChecked(),
                 "auto_start":self.ui_auto_start.isChecked(),
