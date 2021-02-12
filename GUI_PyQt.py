@@ -14,22 +14,23 @@ from PyQt6.QtCore import QObject, QThread, Qt, pyqtSignal, QTimer
 from PyQt6.QtWidgets import QCheckBox, QDialog, QFileDialog, QHBoxLayout, QListWidget, QTabWidget, QWidget, QGridLayout, QVBoxLayout, QPushButton, QLabel, QPlainTextEdit, QLineEdit, QSlider
 os.chdir(os.path.split(os.path.realpath(__file__))[0])
 class InputWindow(QDialog):
-    def __init__(self,data:str,emit_signal:pyqtSignal):
+    def __init__(self,data:str,emit_signal:pyqtSignal,parent:QWidget):
         super().__init__()
-        self.question=QLabel("问题：%s" %data)
+        self.question=QLabel("问题：\n%s" %data)
         self.question.setStyleSheet("QLabel{border:none;border-radius:5px;background:transparent;}")
         self.answer=QLabel("答案：")
         self.answer.setStyleSheet("QLabel{border:none;border-radius:5px;background:transparent;}")
         self.answer_input=QLineEdit()
         self.answer_input.setStyleSheet("QLineEdit{border:none;border-radius:5px;background:transparent;}")
         self.ok=QPushButton("确认")
-        self.ok.setStyleSheet("QPushButton{border:none;border-radius:5px;background:transparent;}")
+        self.ok.setStyleSheet("QPushButton{border-radius:5px;background:transparent;}")
         self.cancel=QPushButton("取消")
-        self.cancel.setStyleSheet("QPushButton{border:none;border-radius:5px;background:transparent;}")
+        self.cancel.setStyleSheet("QPushButton{border-radius:5px;background:transparent;}")
         self.layout_=QGridLayout()
         self.emit_signal=emit_signal
         self.setWindowFlag(Qt.WindowFlags.WindowStaysOnTopHint)
         self.setWindowModality(Qt.WindowModality.WindowModal)
+        self.setParent(parent)
         buttons=QHBoxLayout()
         buttons.addWidget(self.ok)
         buttons.addWidget(self.cancel)

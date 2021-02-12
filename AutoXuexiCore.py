@@ -9,6 +9,7 @@ import qrcode
 import time
 import pprint
 import random
+import multiprocessing
 from PIL import Image
 from fuzzywuzzy import fuzz
 from Crypto.Cipher import AES
@@ -115,6 +116,8 @@ class XuexiProcessor:
         self.timer=timer
         self.need_input_signal=need_input_signal
         self.thread_logger=logging.getLogger("thread")
+        if self.enable_gui==True:
+            self.answers_from_gui=None
         if is_debug==True:
             self.thread_logger.setLevel(logging.DEBUG)
         else:
@@ -162,6 +165,10 @@ class XuexiProcessor:
             conn.commit()
             conn.close()
             self.thread_logger.info("数据库清理完成")
+        self.queue=multiprocessing.Queue()
+        self.thread_logger.debug("已初始化队列")
+        self.wait_answer_process=multiprocessing.Process(target=self.wait_for_answer,args=(self.queue,),daemon=True)
+        self.thread_logger.debug("已初始化子进程")
         self.thread_logger.debug("已初始化类")
     def get_qr_code(self):
         self.browser_driver.get("https://pc.xuexi.cn/points/login.html?ref=https%3A%2F%2Fwww.xuexi.cn%2F")
@@ -505,6 +512,8 @@ class XuexiProcessor:
                 # 填空处理
                 input_elements=question_element.find_elements_by_class_name("blank")
                 for input_element in input_elements:
+                    element_num=input_elements.index(input_element)
+                    self.thread_logger.debug("当前输入框序号：%d" %element_num)
                     if len(answer_tips)==0:
                         # 视频问题，无tips，需要查询数据库或手动介入
                         spans=question_element.find_element_by_class_name("q-body").find_elements_by_tag_name("span")
@@ -531,7 +540,10 @@ class XuexiProcessor:
                                 else:
                                     # GUI Option
                                     self.need_input_signal.emit(question_title)
-                                    answer_overwrite=self.answers_from_gui
+                                    self.thread_logger.debug("正在等待答案")
+                                    self.wait_answer_process.start()
+                                    self.wait_answer_process.join()
+                                    answer_overwrite=self.queue.get()
                             else:
                                 self.update_requests_cookies_with_selenium()
                                 video_url=video.get_attribute("src")
@@ -543,11 +555,14 @@ class XuexiProcessor:
                                     with open(file="video.mp4",mode="wb") as video_downloader:
                                         video_downloader.write(self.request_session.get(video_url,headers={"Referer":"https://pc.xuexi.cn"}).content)
                                 if self.enable_gui==False:
-                                    answer_overwrite=input("视频已用 video.mp4 的文件名下载到程序文件夹，答案需要手动输入：")
+                                    answer_overwrite=input("视频已用 video.mp4 的文件名下载到程序文件夹，答案需要手动输入，多个答案按顺序用#分隔：")
                                 else:
                                     # GUI Option
                                     self.need_input_signal.emit(question_title)
-                                    answer_overwrite=self.answers_from_gui
+                                    self.thread_logger.debug("正在等待答案")
+                                    self.wait_answer_process.start()
+                                    self.wait_answer_process.join()
+                                    answer_overwrite=self.queue.get()
                             input_element.send_keys(answer_overwrite)
                             self.thread_logger.info("正在更新答案数据库")
                             self.update_answer_database(type_of_question="fill_the_blank",question=question_title,answer=answer_overwrite)
@@ -560,10 +575,14 @@ class XuexiProcessor:
                             else:
                                 # GUI Option
                                 self.need_input_signal.emit(question_title)
-                                answer_overwrite=self.answers_from_gui
+                                self.thread_logger.debug("正在等待答案")
+                                self.wait_answer_process.start()
+                                self.wait_answer_process.join()
+                                answer_overwrite=self.queue.get()
                             input_element.send_keys(answer_overwrite)
                     else:
-                        answer_tip=answer_tips[input_elements.index(input_element)]
+                        answer_tip=answer_tips[element_num]
+                        self.thread_logger.debug("正在填入答案：%s" %answer_tip.text)
                         input_element.clear()
                         input_element.send_keys(answer_tip.text)
             else:
@@ -591,7 +610,10 @@ class XuexiProcessor:
                             else:
                                 # GUI Option
                                 self.need_input_signal.emit(question_title)
-                                answer_overwrite=self.answers_from_gui
+                                self.thread_logger.debug("正在等待答案")
+                                self.wait_answer_process.start()
+                                self.wait_answer_process.join()
+                                answer_overwrite=self.queue.get()
                         else:
                             self.update_requests_cookies_with_selenium()
                             video_url=video.get_attributes("src")
@@ -607,7 +629,10 @@ class XuexiProcessor:
                             else:
                                 # GUI Option
                                 self.need_input_signal.emit(question_title)
-                                answer_overwrite=self.answers_from_gui
+                                self.thread_logger.debug("正在等待答案")
+                                self.wait_answer_process.start()
+                                self.wait_answer_process.join()
+                                answer_overwrite=self.queue.get()
                         answers_=answer_overwrite.split("#")
                         self.thread_logger.info("正在更新答案数据库")
                         self.update_answer_database(type_of_question="choose",question=question_title,answer=answer_overwrite)
@@ -623,7 +648,10 @@ class XuexiProcessor:
                         else:
                             # GUI Options
                             self.need_input_signal.emit(question_title)
-                            answer_overwrite=self.answers_from_gui
+                            self.thread_logger.debug("正在等待答案")
+                            self.wait_answer_process.start()
+                            self.wait_answer_process.join()
+                            answer_overwrite=self.queue.get()
                         answers_=answer_overwrite.split("#")
                 for answer in answers_:
                     self.thread_logger.debug("当前tip的内容：%s" %answer)
@@ -665,7 +693,10 @@ class XuexiProcessor:
                             else:
                                 # GUI Option
                                 self.need_input_signal.emit(question_title)
-                                answers=self.answers_from_gui
+                                self.thread_logger.debug("正在等待答案")
+                                self.wait_answer_process.start()
+                                self.wait_answer_process.join()
+                                answer_overwrite=self.queue.get()
                             need_update_db=True
                         if "#" in answers:
                             answers_=answers.split("#")
@@ -694,7 +725,10 @@ class XuexiProcessor:
                             else:
                                 # GUI Option
                                 self.need_input_signal.emit(question_title)
-                                answers=self.answers_from_gui
+                                self.thread_logger.debug("正在等待答案")
+                                self.wait_answer_process.start()
+                                self.wait_answer_process.join()
+                                answer_overwrite=self.queue.get()
                             need_update_db=True
                         if "#" in answers:
                             answers_=answers.split("#")
@@ -949,16 +983,36 @@ class XuexiProcessor:
         # 找到或制造一个API
         conn=sqlite3.connect("database.db")
         cur=conn.cursor()
+        cur.execute(".output upload.db")
+        cur.execute(".dump answers")
+        cur.execute(".quit")
         conn.close()
     def exec_command(self,cmd:str):
         pass
     def is_answer_match(self,answer_input_text,answer_text):
+        answer_input_texts=["正确"]
+        answer_texts=["会","可以","应当"]
         if answer_text in answer_input_text:
             return True
-        elif "正确" in answer_input_text and "会" in answer_text:
-            return True
-        elif "正确" in answer_input_text and "可以" in answer_text:
-            return True
+        for answer_input_text_ in answer_input_texts:
+            for answer_text_ in answer_texts:
+                if answer_input_text_ in answer_input_text and answer_text_ in answer_text:
+                    return True
         return False
     def get_answers(self,answers:str):
+        self.thread_logger.debug("接受数据：%s" %answers)
         self.answers_from_gui=answers
+    def wait_for_answer(self,queue):
+        i=0
+        while True:
+            time.sleep(0.5)
+            i=i+1
+            self.thread_logger.debug("第 %s 轮等待" %i)
+            if type(self.answers_from_gui)==str:
+                answer_overwrite=self.answers_from_gui
+                queue.put(answer_overwrite)
+                self.answers_from_gui=None
+                self.thread_logger.debug("获得的答案：%s" %answer_overwrite)
+                break
+            else:
+                self.thread_logger.debug("变量类型不符合要求，继续等待")
