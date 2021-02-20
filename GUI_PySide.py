@@ -159,7 +159,7 @@ class NormalMsgBox(QDialog):
         self.setLayout(layout)
 class SettingWindow(QDialog):
     def __init__(self,parent:QWidget):
-        super(QDialog,self).__init__()
+        super().__init__()
         with open(file="config.json",mode="r",encoding="utf-8") as conf_reader:
             conf=json.loads(conf_reader.read())
         self.setParent(parent)
@@ -302,7 +302,7 @@ class SettingWindow(QDialog):
         theme_opacity_label=QLabel("窗口透明度：")
         theme_opacity_label.setStyleSheet(settings["label"])
         self.theme_opacity_slider=FixedSlider()
-        self.theme_opacity_slider.setOrientation(Qt.Orientations.Horizontal)
+        self.theme_opacity_slider.setOrientation(Qt.Orientation.Horizontal)
         self.theme_opacity_slider.setMinimum(0)
         self.theme_opacity_slider.setMaximum(10)
         self.theme_opacity_slider.setValue(int(conf["ui"]["opacity"]*10))
@@ -679,7 +679,7 @@ class Work(QObject):
             self.logger=logger
     def start_process(self):
         self.logger.debug("子线程正在初始化工作类")
-        self.processor=XuexiProcessor(is_debug=self.is_debug,timeout=self.timeout,record_days=self.record_days,
+        self.processor=XuexiProcessor(is_debug=self.is_debug,timeout=self.timeout,record_days=self.record_days,allow_upload=self.allow_upload,
                                         browser_type=self.browser_type,qr_login=self.qr_login,enable_special_test=self.enable_special_test,
                                         enable_weekly_test=self.enable_weekly_test,enable_daily_test=self.enable_daily_test,
                                         browser_exec=self.browser_exec,driver_exec=self.driver_exec,enable_gui=self.enable_gui,
@@ -889,4 +889,5 @@ def show(ui_conf:dict):
     app=QApplication(sys.argv)
     ui=UI(ui_conf=ui_conf)
     ui.show()
-    sys.exit(app.exec_())
+    code=app.exec_()
+    return int(code)

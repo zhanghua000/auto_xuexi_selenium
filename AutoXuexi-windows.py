@@ -9,8 +9,6 @@ import logging
 import requests
 import win32api
 import ctypes
-#from GUI_PyQt import show
-from GUI_PySide import show
 from AutoXuexiCore import XuexiProcessor
 os.chdir(os.path.split(os.path.realpath(__file__))[0])
 ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("myappid")
@@ -164,10 +162,11 @@ if __name__=="__main__":
     enable_weekly_test=bool(conf["enable_weekly_test"])
     qr_login=bool(conf["qr_login"])
     is_debug=bool(conf["is_debug"])
-    edge_version=str(conf["edge_version"])
     timeout=int(conf["timeout"])
     record_days=int(conf["record_days"])
     browser_type=str(conf["browser_type"])
+    if browser_type=="edge_chromium":
+        edge_version=str(conf["edge_version"])
     browser_exec=str(conf["browser_exec"])
     driver_exec=str(conf["driver_exec"])
     allow_upload=bool(conf["allow_upload"])
@@ -200,7 +199,7 @@ if __name__=="__main__":
         logger.debug("已禁用图形界面")
         logger.info("正在开始处理项目")
         start_time=time.time()
-        processor=XuexiProcessor(is_debug=is_debug,
+        processor=XuexiProcessor(is_debug=is_debug, allow_upload=allow_upload,
                                 timeout=timeout,record_days=record_days,browser_type=browser_type,
                                 qr_login=qr_login,enable_special_test=enable_special_test,
                                 enable_weekly_test=enable_weekly_test,enable_daily_test=enable_daily_test,
@@ -210,36 +209,35 @@ if __name__=="__main__":
         mins,secs=divmod(int(time.time()-start_time),60)
         hours,mins=divmod(mins,60)
         logger.info("执行完成，共计用时 {:0>2d}:{:0>2d}:{:0>2d}".format(hours,mins,secs))
-        current_conf={
-            "enable_daily_test":enable_daily_test,
-            "enable_special_test":enable_special_test,
-            "enable_weekly_test":enable_weekly_test,
-            "enable_gui":enable_gui,
-            "is_debug":is_debug,
-            "lang":lang,
-            "qr_login":qr_login,
-            "timeout":timeout,
-            "record_days":record_days,
-            "browser_type":browser_type,
-            "allow_upload":allow_upload,
-            "browser_exec":browser_exec,
-            "driver_exec":driver_exec,
-            "ui":ui_conf,
-            "proxy_bat":proxy_bat}
-        if current_conf["browser_type"]=="edge_chromium":
-            current_conf["edge_version"]=get_edge_version()
-        if current_conf!=conf:
-            logger.debug("当前配置已更改，正在更新配置到文件")
-            with open(file="config.json",mode="w",encoding="utf-8") as conf_updater:
-                conf_updater.write(json.dumps(obj=current_conf,indent=4,sort_keys=True))
-        if processor.is_answer_in_db_updated==True and allow_upload==True:
-            logger.info("正在更新答案数据库到网络")
-            processor.upload_database()
-        sys.exit(0)
+        return_code=0
     else:
         if use_pyqt==True:
             from GUI_PyQt import show
         else:
             from GUI_PySide import show
         logger.debug("已启用图形界面")
-        show(ui_conf=ui_conf)
+        return_code=show(ui_conf=ui_conf)
+    current_conf={
+        "enable_daily_test":enable_daily_test,
+        "enable_special_test":enable_special_test,
+        "enable_weekly_test":enable_weekly_test,
+        "enable_gui":enable_gui,
+        "is_debug":is_debug,
+        "lang":lang,
+        "qr_login":qr_login,
+        "timeout":timeout,
+        "record_days":record_days,
+        "browser_type":browser_type,
+        "allow_upload":allow_upload,
+        "browser_exec":browser_exec,
+        "driver_exec":driver_exec,
+        "ui":ui_conf,
+        "proxy_bat":proxy_bat,
+        "use_pyqt":use_pyqt}
+    if current_conf["browser_type"]=="edge_chromium":
+        current_conf["edge_version"]=get_edge_version()
+    if current_conf!=conf:
+        logger.debug("当前配置已更改，正在更新配置到文件")
+        with open(file="config.json",mode="w",encoding="utf-8") as conf_updater:
+            conf_updater.write(json.dumps(obj=current_conf,indent=4,sort_keys=True))
+    sys.exit(return_code)
