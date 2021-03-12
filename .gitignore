@@ -10,3 +10,4 @@ requirements.txt
 .vs
 browsermob-proxy
 PyQtEnv
+PySideEnv
