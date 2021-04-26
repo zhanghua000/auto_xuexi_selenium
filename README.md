@@ -1,8 +1,10 @@
 # auto_xuexi_selenium
 
-[dalaoµÄÏîÄ¿ÒÑ¾­µ¹ÁË](https://github.com/fuck-xuexiqiangguo/Fuck-XueXiQiangGuo/issues/578)  
-×î½üÕë¶ÔGitHubµÄ·À»ğÇ½ÓÖ¼Ó¸ßÁË£¬Ö±Á¬ÍøÒ³ÒÑ¾­ÓĞÎÊÌâÁË  
-ÎÒÕâ¸öÆÕÍ¨°ÙĞÕ¸ü¸ã²»¶¯£¬ÁïÁË  
-×ªÒÆÖÁÈ¥ÖĞĞÄ»¯VCS[multiverse](https://github.com/multiverse-vcs/go-multiverse)
-12D3KooWSBwQcHfgKLVMWNc9wLdqpFQmfy7mjAcBznQpdjZNwC9M/AutoXuexiSelenium  
-×Ô¼ºµÄdaemon²»¶¨Ê±ÔÚÏß£¬¸ù¾İÈ¥ÖĞĞÄ»¯µÄÔ­Àí£¬ÈË¶àµÄ»°¾Í¿ÉÒÔ²»¼ä¶Ï·şÎñÁË
+[dalaoçš„é¡¹ç›®å·²ç»å€’äº†](https://github.com/fuck-xuexiqiangguo/Fuck-XueXiQiangGuo/issues/578)  
+æœ€è¿‘é’ˆå¯¹GitHubçš„é˜²ç«å¢™åˆåŠ é«˜äº†ï¼Œç›´è¿ç½‘é¡µå·²ç»æœ‰é—®é¢˜äº†  
+æˆ‘è¿™ä¸ªæ™®é€šç™¾å§“æ›´æä¸åŠ¨ï¼Œæºœäº†  
+è½¬ç§»è‡³å»ä¸­å¿ƒåŒ–VCS [multiverse](https://github.com/multiverse-vcs/go-multiverse)
+~~12D3KooWSBwQcHfgKLVMWNc9wLdqpFQmfy7mjAcBznQpdjZNwC9M/AutoXuexiSelenium~~  
+å·²ä½¿ç”¨Playwrighté‡å†™
+12D3KooWSBwQcHfgKLVMWNc9wLdqpFQmfy7mjAcBznQpdjZNwC9M/AutoXuexiPlaywright
+è‡ªå·±çš„daemonä¸å®šæ—¶åœ¨çº¿ï¼Œæ ¹æ®å»ä¸­å¿ƒåŒ–çš„åŸç†ï¼Œäººå¤šçš„è¯å°±å¯ä»¥ä¸é—´æ–­æœåŠ¡äº†
