@@ -5,6 +5,6 @@
 我这个普通百姓更搞不动，溜了  
 转移至去中心化VCS [multiverse](https://github.com/multiverse-vcs/go-multiverse)
 ~~12D3KooWSBwQcHfgKLVMWNc9wLdqpFQmfy7mjAcBznQpdjZNwC9M/AutoXuexiSelenium~~  
-已使用Playwright重写
-12D3KooWSBwQcHfgKLVMWNc9wLdqpFQmfy7mjAcBznQpdjZNwC9M/AutoXuexiPlaywright
+已使用Playwright重写，新地址如下：  
+12D3KooWSBwQcHfgKLVMWNc9wLdqpFQmfy7mjAcBznQpdjZNwC9M/AutoXuexiPlaywright  
 自己的daemon不定时在线，根据去中心化的原理，人多的话就可以不间断服务了
